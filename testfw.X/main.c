@@ -250,6 +250,9 @@ void main() {
 
     while(1) {
         // echo input
+        if(U1STAbits.OERR) {
+            U1STAbits.OERR = 0;
+        }
         if(U1STAbits.URXDA && U1STAbits.TRMT) {
             buf = U1RXREG;
             if(input_ptr == 80 || buf == 0x0d) {

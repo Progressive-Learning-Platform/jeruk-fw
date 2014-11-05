@@ -26,6 +26,9 @@ void pchar(char a) {
 }
 
 char blocking_read() {
+    if(U1STAbits.OERR) {
+        U1STAbits.OERR = 0;
+    }
     while(!U1STAbits.URXDA);
     return U1RXREG;
 }
@@ -115,6 +118,12 @@ void ascii_hex_word(char buf[], int val) {
 
 void uart_forward(void) {
     while(1) {
+        if(U1STAbits.OERR) {
+            U1STAbits.OERR = 0;
+        }
+        if(U2STAbits.OERR) {
+            U2STAbits.OERR = 0;
+        }
         if(U2STAbits.URXDA) {
             while(!U1STAbits.TRMT);
             U1TXREG = U2RXREG;
