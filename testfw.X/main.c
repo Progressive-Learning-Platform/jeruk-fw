@@ -65,7 +65,6 @@
 #define LEDS PORTA
 
 char* version = "jeruk-pic32-wload-alpha-1";
-char* cpu_info = "PIC32MX270F256B (little-endian)";
 char* boot_info = "JERUK | http://plp.asu.edu";
 char* cmd_error = "ERROR: Invalid or malformed command";
 char input_buf[80];
@@ -154,7 +153,116 @@ void delay_ms(unsigned int milliseconds) {
             );
 }
 
+// print the (supported) CPU model the firmware is running on
+void print_cpumodel() {
+    int val = DEVID & 0x0fffffff;
+    if(val == 0x6600053) {          print("PIC32MX270F256B");
+    } else if(val == 0x4D00053) {   print("PIC32MX250F128B");
+    } else if(val == 0x4D01053) {   print("PIC32MX230F064B");
+    } else                      {   print("Unknown");
+    }
+}
+
+void process_input(void);
 void party(void);
+
+void main() {
+    // JERUK board initialization
+
+    // Setup UART pin-mapping
+    U1RXR  = 0b0100;    // U1RX mapped to RB2
+    U2RXR  = 0b0001;    // U2RX mapped to RB5
+    RPB3R  = 0b0001;    // U1TX mapped to RB3
+    RPB14R = 0b0010;    // U2TX mapped to RB14
+
+    // Setup UART 1
+    U1MODEbits.ON = 1;          // on
+    U1MODEbits.UEN = 0b00;      // rx/tx pins only
+    U1MODEbits.BRGH = 1;        // brgh mode
+    U1MODEbits.PDSEL = 0b00;    // 8-bit data, no parity
+    U1MODEbits.STSEL = 0;       // 1 stop bit
+    U1STAbits.URXEN = 1;        // receive enable
+    U1STAbits.UTXEN = 1;        // transmit enable
+    U1BRG = (SYSTEM_CLOCK/UART1_BAUD)/4 - 1;
+
+    // Setup UART 2
+    U2MODEbits.ON = 1;          // on
+    U2MODEbits.UEN = 0b00;      // rx/tx pins only
+    U2MODEbits.BRGH = 1;        // brgh mode
+    U2MODEbits.PDSEL = 0b00;    // 8-bit data, no parity
+    U2MODEbits.STSEL = 0;       // 1 stop bit
+    U2STAbits.URXEN = 1;        // receive enable
+    U2STAbits.UTXEN = 1;        // transmit enable
+    U2BRG = (SYSTEM_CLOCK/UART2_BAUD)/4 - 1;
+
+    TRISB &= 0b1011111111110111; // pins RB3 and RB14 outputs for UART TX lines
+    TRISA &= 0b1111111111100000; // LED pins
+
+    RPB4R = 0;
+    RPB9R = 0;
+
+    // Disable ADC, for now
+    AD1CON1bits.ADON = 0;
+    ANSELA = 0;
+    ANSELB = 0;
+
+    BMXDKPBA = 0x4000; // 16k of RAM for data, rest for program
+    BMXDUDBA = 0x10000;
+    BMXDUPBA = 0x10000;
+
+    char buf;
+    char wordbuf[9];
+
+    programmer_pc = 0;
+
+    LEDS = 0b00100;
+    delay_ms(50);
+    LEDS = 0b01110;
+    delay_ms(50);
+    LEDS = 0b11111;
+    delay_ms(50);
+    LEDS = 0b11011;
+    delay_ms(50);
+    LEDS = 0b10001;
+    delay_ms(50);
+    if(BTN0 && !BTN1) {
+        LEDS = 0b10000; // fload time!
+        fload();
+    } else {
+        LEDS = 0;
+    }
+
+    // we default into interactive mode
+    pchar('\n');
+    print(boot_info);
+    print("\nFirmware: ");
+    print(version);
+    pchar('\n');
+    ascii_hex_word(wordbuf, DEVID & 0x0fffffff);
+    print("Microcontroller ID: ");
+    print(wordbuf);
+    print(" (");
+    print_cpumodel();
+    print(") Rev: ");
+    pchar(ascii_byte_l((char)((DEVID & 0xf0000000) >> 28)));
+    print("\n> ");
+    input_ptr = 0;
+
+    while(1) {
+        // echo input
+        if(U1STAbits.URXDA && U1STAbits.TRMT) {
+            buf = U1RXREG;
+            if(input_ptr == 80 || buf == 0x0d) {
+                process_input();
+                input_ptr = 0;
+            } else {
+                U1TXREG = buf;
+                input_buf[input_ptr] = buf;
+                input_ptr++;
+            }
+        }
+    }
+}
 
 void process_input() {
     char val;
@@ -383,101 +491,6 @@ void process_input() {
     print("\n> ");
 }
 
-/*
- * 
- */
-void main() {
-
-    // JERUK board initialization
-
-    // Setup UART pin-mapping
-    U1RXR  = 0b0100;    // U1RX mapped to RB2
-    U2RXR  = 0b0001;    // U2RX mapped to RB5
-    RPB3R  = 0b0001;    // U1TX mapped to RB3
-    RPB14R = 0b0010;    // U2TX mapped to RB14
-
-    // Setup UART 1
-    U1MODEbits.ON = 1;          // on
-    U1MODEbits.UEN = 0b00;      // rx/tx pins only
-    U1MODEbits.BRGH = 1;        // brgh mode
-    U1MODEbits.PDSEL = 0b00;    // 8-bit data, no parity
-    U1MODEbits.STSEL = 0;       // 1 stop bit
-    U1STAbits.URXEN = 1;        // receive enable
-    U1STAbits.UTXEN = 1;        // transmit enable
-    U1BRG = (SYSTEM_CLOCK/UART1_BAUD)/4 - 1;
-
-    // Setup UART 2
-    U2MODEbits.ON = 1;          // on
-    U2MODEbits.UEN = 0b00;      // rx/tx pins only
-    U2MODEbits.BRGH = 1;        // brgh mode
-    U2MODEbits.PDSEL = 0b00;    // 8-bit data, no parity
-    U2MODEbits.STSEL = 0;       // 1 stop bit
-    U2STAbits.URXEN = 1;        // receive enable
-    U2STAbits.UTXEN = 1;        // transmit enable
-    U2BRG = (SYSTEM_CLOCK/UART2_BAUD)/4 - 1;
-
-    TRISB &= 0b1011111111110111; // pins RB3 and RB14 outputs for UART TX lines
-    TRISA &= 0b1111111111100000; // LED pins
-
-    RPB4R = 0;
-    RPB9R = 0;
-
-    // Disable ADC, for now
-    AD1CON1bits.ADON = 0;
-    ANSELA = 0;
-    ANSELB = 0;
-
-    BMXDKPBA = 0x4000; // 16k of RAM for data, rest for program
-    BMXDUDBA = 0x10000;
-    BMXDUPBA = 0x10000;
-
-    char buf;
-
-    programmer_pc = 0;
-
-    LEDS = 0b00100;
-    delay_ms(50);
-    LEDS = 0b01110;
-    delay_ms(50);
-    LEDS = 0b11111;
-    delay_ms(50);
-    LEDS = 0b11011;
-    delay_ms(50);
-    LEDS = 0b10001;
-    delay_ms(50);
-    if(BTN0 && !BTN1) {
-        LEDS = 0b10000; // fload time!
-        fload();
-    } else {
-        LEDS = 0;
-    }
-
-    // we default into interactive mode
-    pchar('\n');
-    print(boot_info);
-    print("\nFirmware: ");
-    print(version);
-    pchar('\n');
-    print(cpu_info);
-    print("\n> ");
-    input_ptr = 0;
-
-    while(1) {
-        // echo input
-        if(U1STAbits.URXDA && U1STAbits.TRMT) {
-            buf = U1RXREG;
-            if(input_ptr == 80 || buf == 0x0d) {
-                process_input();
-                input_ptr = 0;
-            } else {
-                U1TXREG = buf;
-                input_buf[input_ptr] = buf;
-                input_ptr++;
-            }
-        }
-    }
-}
-
 void party() {
     char stop = 0;
     while(!stop) {
@@ -511,3 +524,4 @@ void party() {
         LEDS = 0;
     }
 }
+
