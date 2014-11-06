@@ -7,6 +7,7 @@
       <itemPath>wio.h</itemPath>
       <itemPath>wloader.h</itemPath>
       <itemPath>plpemu.h</itemPath>
+      <itemPath>proccfg.h</itemPath>
     </logicalFolder>
     <logicalFolder name="LinkerScript"
                    displayName="Linker Files"

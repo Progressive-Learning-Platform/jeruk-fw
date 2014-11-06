@@ -1,7 +1,30 @@
 // Wira's terminal I/O stuff source code
 
+// Include your processor header here
 #include <xc.h>
 #include <proc/p32mx270f256b.h>
+
+void init_uart1(int pbclock, int baud) {
+    U1MODEbits.ON = 1;          // on
+    U1MODEbits.UEN = 0b00;      // rx/tx pins only
+    U1MODEbits.BRGH = 1;        // brgh mode
+    U1MODEbits.PDSEL = 0b00;    // 8-bit data, no parity
+    U1MODEbits.STSEL = 0;       // 1 stop bit
+    U1STAbits.URXEN = 1;        // receive enable
+    U1STAbits.UTXEN = 1;        // transmit enable
+    U1BRG = (pbclock/baud)/4 - 1;
+}
+
+void init_uart2(int pbclock, int baud) {
+    U2MODEbits.ON = 1;          // on
+    U2MODEbits.UEN = 0b00;      // rx/tx pins only
+    U2MODEbits.BRGH = 1;        // brgh mode
+    U2MODEbits.PDSEL = 0b00;    // 8-bit data, no parity
+    U2MODEbits.STSEL = 0;       // 1 stop bit
+    U2STAbits.URXEN = 1;        // receive enable
+    U2STAbits.UTXEN = 1;        // transmit enable
+    U2BRG = (pbclock/baud)/4 - 1;
+}
 
 void print(char *buf) {
     int i = 0;

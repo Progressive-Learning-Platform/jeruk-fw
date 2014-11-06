@@ -10,59 +10,7 @@
 #include "wio.h"
 #include "wloader.h"
 #include "plpemu.h"
-
-// DEVCFG3
-// USERID = No Setting
-#pragma config PMDL1WAY = ON            // Peripheral Module Disable Configuration (Allow only one reconfiguration)
-#pragma config IOL1WAY = ON             // Peripheral Pin Select Configuration (Allow only one reconfiguration)
-#pragma config FUSBIDIO = OFF           // USB USID Selection (Controlled by Port Function)
-#pragma config FVBUSONIO = OFF          // USB VBUS ON Selection (Controlled by Port Function)
-
-// DEVCFG2
-#pragma config FPLLIDIV = DIV_2         // PLL Input Divider (2x Divider)
-#pragma config FPLLMUL = MUL_24         // PLL Multiplier (24x Multiplier)
-#pragma config UPLLIDIV = DIV_12        // USB PLL Input Divider (12x Divider)
-#pragma config UPLLEN = OFF             // USB PLL Enable (Disabled and Bypassed)
-#pragma config FPLLODIV = DIV_2         // System PLL Output Clock Divider (PLL Divide by 2), effective clock is 48MHz (8*24/2/2)
-
-// DEVCFG1
-#pragma config FNOSC = FRCPLL           // Oscillator Selection Bits (Fast RC Osc with PLL)
-#pragma config FSOSCEN = OFF            // Secondary Oscillator Enable (Disabled)
-#pragma config IESO = ON                // Internal/External Switch Over (Enabled)
-#pragma config POSCMOD = OFF            // Primary Oscillator Configuration (Primary osc disabled)
-#pragma config OSCIOFNC = OFF           // CLKO Output Signal Active on the OSCO Pin (Disabled)
-#pragma config FPBDIV = DIV_1           // Peripheral Clock Divisor (Pb_Clk is Sys_Clk/1) pbclock is 48MHz
-#pragma config FCKSM = CSDCMD           // Clock Switching and Monitor Selection (Clock Switch Disable, FSCM Disabled)
-#pragma config WDTPS = PS1048576        // Watchdog Timer Postscaler (1:1048576)
-#pragma config WINDIS = OFF             // Watchdog Timer Window Enable (Watchdog Timer is in Non-Window Mode)
-#pragma config FWDTEN = OFF             // Watchdog Timer Enable (WDT Disabled (SWDTEN Bit Controls))
-#pragma config FWDTWINSZ = WINSZ_25     // Watchdog Timer Window Size (Window Size is 25%)
-
-// DEVCFG0
-#pragma config JTAGEN = OFF             // JTAG Enable (JTAG Port Enabled)
-#pragma config ICESEL = ICS_PGx1        // ICE/ICD Comm Channel Select (Communicate on PGEC1/PGED1)
-#pragma config PWP = OFF                // Program Flash Write Protect (Disable)
-#pragma config BWP = OFF                // Boot Flash Write Protect bit (Protection Disabled)
-#pragma config CP = OFF                 // Code Protect (Protection Disabled)
-
-#define IO_0 PORTBbits.RB4
-#define IO_1 PORTBbits.RB7
-#define IO_2 PORTBbits.RB8
-#define IO_3 PORTBbits.RB9
-#define IO_4 PORTBbits.RB10
-#define IO_5 PORTBbits.RB11
-#define IO_6 PORTBbits.RB13
-#define IO_7 PORTBbits.RB15
-
-#define BTN0 PORTBbits.RB0
-#define BTN1 PORTBbits.RB1
-
-#define SYSTEM_CLOCK    48000000
-#define UART1_BAUD      115200
-#define UART2_BAUD      9600
-#define UART_TIMEOUT    7200000L
-
-#define LEDS PORTA
+#include "proccfg.h"
 
 char* version = "jeruk-pic32-wload-alpha-1";
 char* boot_info = "JERUK | http://plp.asu.edu";
@@ -93,22 +41,30 @@ char* cmd_uart = "uart";
 char* cmd_u2bd = "u2bd";
 char* cmd_u2pins = "u2pins";
 char* cmd_port = "port";
+char* cmd_memory = "memory";
+char* cmd_u2 = "u2";
 
 char* help = "General operations:\n"
              "  help                 display this message\n"
+             "  memory               list memory operations\n"
+             "  u2                   list UART2 operations\n"
              "  port                 expansion port pinout information\n"
              "  reset                do a soft reset of the CPU\n"
              "  plpemu <addr>        invoke the on-chip PLP CPU emulator\n"
              "  rsw                  read switches\n"
              "  wled <val>           write LED values\n"
-             "  rbtn                 read buttons 0 and 1\n"
-             "\nExpansion Port UART operations:\n"
-             "  u2tx <val>           send a byte through UART 2\n"
-             "  u2rx                 read a byte from UART 2 (with timeout)\n"
-             "  u2bd <baud>          set baud (in decimal, 000000-115200)\n"
-             "  u2pins               print UART 2 pinout information\n"
-             "  uart                 go into UART forward mode. Reset CPU to exit\n"
-             "\nMemory operations:\n"
+             "  rbtn                 read buttons 0 and 1\n";
+
+char* help_uart2 =
+             "Expansion Port UART2 operations:\n"
+             "  u2tx <val>           send a byte through UART2\n"
+             "  u2rx                 read a byte from UART2 (with timeout)\n"
+             "  u2bd <baud>          set baud (decimal, 000000-xxxxxx, with leading zeroes)\n"
+             "  u2pins               print UART2 pinout information\n"
+             "  uart                 go into UART forward mode. Reset CPU to exit\n";
+
+char* help_memory =
+             "Memory operations:\n"
              "  wload                invoke the RAM loader\n"
              "  fload                invoke legacy RAM loader\n"
              "  wbyte <addr> <val>   write a byte to the specified address\n"
@@ -137,69 +93,25 @@ char* exppinout = "Expansion Port Pins Designation\n\n"
                   "20   18   16   14   12   10   8    6    4    2\n"
                   "5V   5V   VSS  VSS  VSS  VSS  VSS  U2TX 3.3V U2RX\n";
 
-int programmer_pc;
-
-// should be pretty close enough, 4 instructions / loop
-void delay_ms(unsigned int milliseconds) {
-    unsigned int t = milliseconds * (SYSTEM_CLOCK / 1000 / 4);
-    __asm__("   move $t0, %0                 \n"
-            "wdelay_loop:                    \n"
-            "   beq $t0, $zero, wdelay_quit  \n"
-            "   addiu $t0, $t0, -1           \n"
-            "   j wdelay_loop                \n"
-            "   nop                          \n"
-            "wdelay_quit:                    \n"
-            : : "r"(t) : "t0"
-            );
-}
-
-// print the (supported) CPU model the firmware is running on
-void print_cpumodel() {
-    int val = DEVID & 0x0fffffff;
-    if(val == 0x6600053) {          print("PIC32MX270F256B");
-    } else if(val == 0x4D00053) {   print("PIC32MX250F128B");
-    } else if(val == 0x4D01053) {   print("PIC32MX230F064B");
-    } else                      {   print("Unknown");
-    }
-}
-
+void delay_ms(unsigned int);
+void print_cpumodel(void);
 void process_input(void);
 void party(void);
 
-void main() {
-    // JERUK board initialization
-
+ // JERUK board initialization
+void jeruk_init() {
     // Setup UART pin-mapping
     U1RXR  = 0b0100;    // U1RX mapped to RB2
     U2RXR  = 0b0001;    // U2RX mapped to RB5
     RPB3R  = 0b0001;    // U1TX mapped to RB3
     RPB14R = 0b0010;    // U2TX mapped to RB14
 
-    // Setup UART 1
-    U1MODEbits.ON = 1;          // on
-    U1MODEbits.UEN = 0b00;      // rx/tx pins only
-    U1MODEbits.BRGH = 1;        // brgh mode
-    U1MODEbits.PDSEL = 0b00;    // 8-bit data, no parity
-    U1MODEbits.STSEL = 0;       // 1 stop bit
-    U1STAbits.URXEN = 1;        // receive enable
-    U1STAbits.UTXEN = 1;        // transmit enable
-    U1BRG = (SYSTEM_CLOCK/UART1_BAUD)/4 - 1;
-
-    // Setup UART 2
-    U2MODEbits.ON = 1;          // on
-    U2MODEbits.UEN = 0b00;      // rx/tx pins only
-    U2MODEbits.BRGH = 1;        // brgh mode
-    U2MODEbits.PDSEL = 0b00;    // 8-bit data, no parity
-    U2MODEbits.STSEL = 0;       // 1 stop bit
-    U2STAbits.URXEN = 1;        // receive enable
-    U2STAbits.UTXEN = 1;        // transmit enable
-    U2BRG = (SYSTEM_CLOCK/UART2_BAUD)/4 - 1;
+    // Setup UARTs
+    init_uart1(SYSTEM_CLOCK, UART1_BAUD);
+    init_uart2(SYSTEM_CLOCK, UART2_BAUD);
 
     TRISB &= 0b1011111111110111; // pins RB3 and RB14 outputs for UART TX lines
     TRISA &= 0b1111111111100000; // LED pins
-
-    RPB4R = 0;
-    RPB9R = 0;
 
     // Disable ADC, for now
     AD1CON1bits.ADON = 0;
@@ -209,11 +121,6 @@ void main() {
     BMXDKPBA = 0x4000; // 16k of RAM for data, rest for program
     BMXDUDBA = 0x10000;
     BMXDUPBA = 0x10000;
-
-    char buf;
-    char wordbuf[9];
-
-    programmer_pc = 0;
 
     LEDS = 0b00100;
     delay_ms(50);
@@ -231,6 +138,13 @@ void main() {
     } else {
         LEDS = 0;
     }
+}
+
+void main() {
+    char buf;
+    char wordbuf[9];
+
+    jeruk_init();
 
     // we default into interactive mode
     pchar('\n');
@@ -240,7 +154,7 @@ void main() {
     pchar('\n');
     ascii_hex_word(wordbuf, DEVID & 0x0fffffff);
     print("Microcontroller ID: ");
-    print(wordbuf);
+    psstr(wordbuf, 1, 7);
     print(" (");
     print_cpumodel();
     print(") Rev: ");
@@ -249,20 +163,14 @@ void main() {
     input_ptr = 0;
 
     while(1) {
-        // echo input
-        if(U1STAbits.OERR) {
-            U1STAbits.OERR = 0;
-        }
-        if(U1STAbits.URXDA && U1STAbits.TRMT) {
-            buf = U1RXREG;
-            if(input_ptr == 80 || buf == 0x0d) {
-                process_input();
-                input_ptr = 0;
-            } else {
-                U1TXREG = buf;
-                input_buf[input_ptr] = buf;
-                input_ptr++;
-            }
+        buf = blocking_read();
+        if(input_ptr == 80 || buf == 0x0d) {
+            process_input();
+            input_ptr = 0;
+        } else {
+            pchar(buf);
+            input_buf[input_ptr] = buf;
+            input_ptr++;
         }
     }
 }
@@ -278,7 +186,13 @@ void process_input() {
 
     print("\n");
 
-    if(input_ptr == 3) {
+    if(input_ptr == 2) {
+        if(str_cmp(cmd_u2, input_buf, 2)) {
+            print(help_uart2);
+        } else {
+            print(cmd_error);
+        }
+    } else if(input_ptr == 3) {
         // check read switch
         if(str_cmp(cmd_rsw, input_buf, 3)) {
             print("Switch values: ");
@@ -312,7 +226,7 @@ void process_input() {
             uart_forward();
         } else if(str_cmp(cmd_port, input_buf, 4)) {
             print(exppinout);
-        }else {
+        } else {
             print(cmd_error);
         }
     } else if(input_ptr == 5) {
@@ -330,7 +244,9 @@ void process_input() {
     } else if(input_ptr == 6) {
         if(str_cmp(cmd_u2pins, input_buf, 6)) {
             print(u2pinout);
-        } else {
+        } else if(str_cmp(cmd_memory, input_buf, 6)) {
+            print(help_memory);
+        }  else {
             print(cmd_error);
         }
     }else if(input_ptr == 7) {
@@ -492,6 +408,30 @@ void process_input() {
     }
 
     print("\n> ");
+}
+
+// should be pretty close enough, 4 instructions / loop
+void delay_ms(unsigned int milliseconds) {
+    unsigned int t = milliseconds * (SYSTEM_CLOCK / 1000 / 4);
+    __asm__("   move $t0, %0                 \n"
+            "wdelay_loop:                    \n"
+            "   beq $t0, $zero, wdelay_quit  \n"
+            "   addiu $t0, $t0, -1           \n"
+            "   j wdelay_loop                \n"
+            "   nop                          \n"
+            "wdelay_quit:                    \n"
+            : : "r"(t) : "t0"
+            );
+}
+
+// print the (supported) CPU model the firmware is running on
+void print_cpumodel() {
+    int val = DEVID & 0x0fffffff;
+    if(val == 0x6600053) {          print("PIC32MX270F256B");
+    } else if(val == 0x4D00053) {   print("PIC32MX250F128B");
+    } else if(val == 0x4D01053) {   print("PIC32MX230F064B");
+    } else                      {   print("Unknown");
+    }
 }
 
 void party() {

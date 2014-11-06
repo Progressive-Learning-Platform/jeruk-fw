@@ -12,6 +12,8 @@
 extern "C" {
 #endif
 
+void init_uart1(int, int);
+void init_uart2(int, int);
 void print(char*);
 void psstr(char*, int, int);
 void pchar(char);
