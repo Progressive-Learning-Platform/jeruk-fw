@@ -61,7 +61,6 @@ extern "C" {
 #define SYSTEM_CLOCK    48000000
 #define UART1_BAUD      57600
 #define UART2_BAUD      9600
-#define UART_TIMEOUT    7200000L
 
 #define LEDS PORTA
 

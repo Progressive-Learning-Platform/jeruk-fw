@@ -4,6 +4,8 @@
 #include <xc.h>
 #include <proc/p32mx270f256b.h>
 
+#define UART_TIMEOUT    7200000L
+
 void init_uart1(int pbclock, int baud) {
     U1MODEbits.ON = 1;          // on
     U1MODEbits.UEN = 0b00;      // rx/tx pins only
@@ -78,9 +80,9 @@ char parse_ascii_hex(char ascii) {
 
 // parse 1-byte hex value in ascii to its literal value
 // [0] is the high nibble, [1] is the low nibble
-char parse_ascii_hex_byte(char ascii_h, char ascii_l) {
-    char high = parse_ascii_hex(ascii_h);
-    char low = parse_ascii_hex(ascii_l);
+char parse_ascii_hex_byte(char* string, int start) {
+    char high = parse_ascii_hex(string[start]);
+    char low = parse_ascii_hex(string[start+1]);
 
     return (high<<4) | low;
 }
@@ -99,6 +101,17 @@ int parse_ascii_hex_word(char ascii_7, char ascii_6, char ascii_5, char ascii_4,
 
     return (b7 << 28) | (b6 << 24) | (b5 << 20) | (b4 << 16) |
            (b3 << 12) | (b2 << 8) | (b1 << 4) | (b0);
+}
+
+int parse_ascii_hex_32(char* string, int start) {
+    char buf;
+    int val = 0;
+    int i;
+    for(i = 0; i < 8; i++) {
+        buf = parse_ascii_hex(string[start+i]);
+        val |= (buf << 4*(7-i));
+    }
+    return val;
 }
 
 char ascii_byte_h(char val) {
@@ -172,4 +185,48 @@ int parse_ascii_decimal(char* buf, char start, char len) {
     }
 
     return val;
+}
+
+void u2_set_baud(int val_int) {
+    char wordbuf[9];
+    U2BRG = (48000000/val_int)/4 - 1;
+    print("New baud: ");
+    ascii_hex_word(wordbuf, val_int);
+    print(wordbuf);
+    pchar('\n');
+    print("brg value: ");
+    ascii_hex_word(wordbuf, U2BRG);
+    print(wordbuf);
+    pchar('\n');
+}
+
+char u2_blocking_read() {
+    if(U2STAbits.OERR) {
+        U2STAbits.OERR = 0;
+    }
+    while(!U2STAbits.URXDA);
+    return U2RXREG;
+}
+
+char u2_read_print() {
+    int timeout_count = 0;
+    char val;
+    if(U2STAbits.OERR) {
+        U2STAbits.OERR = 0;
+    }
+    while(timeout_count < UART_TIMEOUT && !U2STAbits.URXDA) {
+        timeout_count++;
+    }
+    if(U2STAbits.URXDA) {
+        val = U2RXREG;
+        pchar(ascii_byte_h(val));
+        pchar(ascii_byte_l(val));
+    } else {
+        print("UART receive timeout\n");
+    }
+}
+
+void u2_write(char a) {
+    while(!U2STAbits.TRMT);
+    U2TXREG = a;
 }

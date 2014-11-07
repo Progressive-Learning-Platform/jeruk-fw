@@ -12,37 +12,18 @@
 #include "plpemu.h"
 #include "proccfg.h"
 
+#define OPR_NONE  0
+#define OPR_HEX32 1
+#define OPR_HEX8  2
+#define OPR_DEC6  3
+#define OPR_RANGE 4
+#define OPR_ADVAL 5
+
 char* version = "jeruk-pic32-wload-alpha-1";
 char* boot_info = "JERUK | http://plp.asu.edu";
 char* cmd_error = "ERROR: Invalid or malformed command";
 char input_buf[80];
 char input_ptr;
-
-char* cmd_rsw = "rsw";
-char* cmd_rbtn = "rbtn";
-char* cmd_help = "help";
-char* cmd_wled = "wled";
-char* cmd_party = "party";
-char* cmd_w32 = "w32";
-char* cmd_r32 = "r32";
-char* cmd_rbyte = "rbyte";
-char* cmd_wbyte = "wbyte";
-char* cmd_org = "org";
-char* cmd_range = "range";
-char* cmd_rword = "rword";
-char* cmd_ascii = "ascii";
-char* cmd_reset = "reset";
-char* cmd_wload = "wload";
-char* cmd_fload = "fload";
-char* cmd_plpemu = "plpemu";
-char* cmd_u2tx = "u2tx";
-char* cmd_u2rx = "u2rx";
-char* cmd_uart = "uart";
-char* cmd_u2bd = "u2bd";
-char* cmd_u2pins = "u2pins";
-char* cmd_port = "port";
-char* cmd_memory = "memory";
-char* cmd_u2 = "u2";
 
 char* help = "General operations:\n"
              "  help                 display this message\n"
@@ -71,8 +52,8 @@ char* help_memory =
              "  rbyte <addr>         read a byte from the specified address\n"
              "  range <start> <end>  print byte values from specified address range\n"
              "  rword <start> <end>  likewise, in little-endian format\n"
-             "  range <addr>         print 16 bytes of value starting from specified address\n"
-             "  rword <addr>         likewise, in little-endian format\n"
+             "  row <addr>           print 16 bytes of value starting from specified address\n"
+             "  rowle <addr>         likewise, in little-endian format\n"
              "  ascii <start> <end>  print memory contents as ASCII characters\n"
              "  \nNotes:\n"
              "  Addresses must be entered as lowercase hex, e.g. a0004020\n"
@@ -164,7 +145,7 @@ void main() {
 
     while(1) {
         buf = blocking_read();
-        if(input_ptr == 80 || buf == 0x0d) {
+        if(input_ptr == 79 || buf == 0x0d) {
             process_input();
             input_ptr = 0;
         } else {
@@ -175,237 +156,271 @@ void main() {
     }
 }
 
-void process_input() {
-    char val;
-    char* ptr_byte;
-    char* ptr_byte_end;
+char parse(char* cmd, char opr_type) {
+    int i  = 0;
+    char buf;
+    while((buf = cmd[i]) != 0 && i < input_ptr) {
+        if(input_buf[i] != buf) {
+            return 0;
+        }
+        i++;
+    }
+
+    if(opr_type == OPR_NONE && i != input_ptr) {
+        return 0;
+    }
+
+    else if(opr_type == OPR_HEX32 && (i+1+8) != input_ptr) {
+        return 0;
+    }
+
+    else if(opr_type == OPR_HEX8 && (i+1+2) != input_ptr) {
+        return 0;
+    }
+
+    else if(opr_type == OPR_DEC6 && (i+1+6) != input_ptr) {
+        return 0;
+    }
+
+    else if(opr_type == OPR_RANGE && (i+1+8+1+8) != input_ptr) {
+        return 0;
+    }
+
+    else if(opr_type == OPR_ADVAL && (i+1+8+1+2) != input_ptr) {
+        return 0;
+    }
+
+    if(opr_type == OPR_HEX32 || opr_type == OPR_HEX8) {
+        for(i=i+1; i < input_ptr; i++) {
+            if(!((input_buf[i] >= '0' && input_buf[i] <= '9') ||
+               (input_buf[i] >= 'a' && input_buf[i] <= 'f'))) {
+                return 0;
+            }
+        }
+    }
+
+    if(opr_type == OPR_RANGE) {
+        for(i=i+1; i < input_ptr-9; i++) {
+            if(!((input_buf[i] >= '0' && input_buf[i] <= '9') ||
+               (input_buf[i] >= 'a' && input_buf[i] <= 'f'))) {
+                return 0;
+            }
+        }
+
+        for(i=input_ptr-8; i < input_ptr; i++) {
+            if(!((input_buf[i] >= '0' && input_buf[i] <= '9') ||
+               (input_buf[i] >= 'a' && input_buf[i] <= 'f'))) {
+                return 0;
+            }
+        }
+    }
+
+    if(opr_type == OPR_ADVAL) {
+        for(i=i+1; i < input_ptr-3; i++) {
+            if(!((input_buf[i] >= '0' && input_buf[i] <= '9') ||
+               (input_buf[i] >= 'a' && input_buf[i] <= 'f'))) {
+                return 0;
+            }
+        }
+
+        for(i=input_ptr-2; i < input_ptr; i++) {
+            if(!((input_buf[i] >= '0' && input_buf[i] <= '9') ||
+               (input_buf[i] >= 'a' && input_buf[i] <= 'f'))) {
+                return 0;
+            }
+        }
+    }
+
+    if(opr_type == OPR_DEC6) {
+        for(i=i+1; i < input_ptr; i++) {
+            if(!(input_buf[i] >= '0' && input_buf[i] <= '9')) {
+                return 0;
+            }
+        }
+    }
+
+    return 1;
+}
+
+void cmd_range() {
     char wordbuf[9];
+    int i;
+    char* ptr_byte = (char*) parse_ascii_hex_32(input_buf, 6);
+    char* ptr_byte_end = (char*) parse_ascii_hex_32(input_buf, 15);
+
+    while(ptr_byte < ptr_byte_end) {
+        ascii_hex_word(wordbuf, (int) ptr_byte);
+        print(wordbuf);
+        pchar(' ');
+        for(i = 0; i < 16; i++) {
+            if(i % 4 == 0) {
+                pchar(' ');
+            }
+            pchar(ascii_byte_h(*ptr_byte));
+            pchar(ascii_byte_l(*ptr_byte));
+            pchar(' ');
+            ptr_byte++;
+        }
+        pchar('\n');
+    }
+}
+
+void cmd_row() {
+    int i;
+    char* ptr_byte = (char*) parse_ascii_hex_32(input_buf, 4);
+    psstr(input_buf, 4, 8);
+    pchar(' ');
+    
+    for(i = 0; i < 16; i++) {
+        if(i % 4 == 0) {
+            pchar(' ');
+        }
+        pchar(ascii_byte_h(*ptr_byte));
+        pchar(ascii_byte_l(*ptr_byte));
+        pchar(' ');
+        ptr_byte++;
+    }
+}
+
+void cmd_rword() {
     int i, j;
-    unsigned int timeout_count;
-    unsigned int val_int;
+    char wordbuf[9];
+    char* ptr_byte = (char*) parse_ascii_hex_32(input_buf, 6);
+    char* ptr_byte_end = (char*) parse_ascii_hex_32(input_buf, 15);
+
+    print("Words are displayed as little-endian\n");
+
+    while(ptr_byte < ptr_byte_end) {
+        ascii_hex_word(wordbuf, (int) ptr_byte);
+        print(wordbuf);
+        pchar(' ');
+        for(i = 0; i < 4; i++) {
+            pchar(' ');
+            for(j = 3; j >= 0; j--) {
+                pchar(ascii_byte_h(*(ptr_byte+j)));
+                pchar(ascii_byte_l(*(ptr_byte+j)));
+                pchar(' ');
+            }
+            ptr_byte += 4;
+        }
+        pchar('\n');
+    }
+}
+
+void cmd_rowle() {
+    int i, j;
+    char wordbuf[9];
+    char* ptr_byte = (char*) parse_ascii_hex_32(input_buf, 6);
+
+    print("Words are displayed as little-endian\n");
+
+    ascii_hex_word(wordbuf, (int) ptr_byte);
+    print(wordbuf);
+    pchar(' ');
+    for(i = 0; i < 4; i++) {
+        pchar(' ');
+        for(j = 3; j >= 0; j--) {
+            pchar(ascii_byte_h(*(ptr_byte+j)));
+            pchar(ascii_byte_l(*(ptr_byte+j)));
+            pchar(' ');
+        }
+        ptr_byte += 4;
+    }
+    pchar('\n');
+}
+
+void cmd_rsw() {
+    char val;
+    print("Switch values: ");
+    val = 0 | IO_7 << 7 | IO_6 << 6 | IO_5 << 5 | IO_4 << 4 |
+              IO_3 << 3 | IO_2 << 2 | IO_1 << 1 | IO_0;
+    pchar(ascii_byte_h(val));
+    pchar(ascii_byte_l(val));
+}
+
+void cmd_rbtn() {
+    char val = PORTB & 0x3;
+    print("Button values: ");
+    pchar(ascii_byte_l(val));
+}
+
+void cmd_wled() {
+    char val = parse_ascii_hex_byte(input_buf, 5);
+    LEDS = val;
+}
+
+void cmd_rbyte() {
+    char* ptr_byte = (char*) parse_ascii_hex_32(input_buf, 6);
+    print("Value: ");
+    pchar(ascii_byte_h(*ptr_byte));
+    pchar(ascii_byte_l(*ptr_byte));
+}
+
+void cmd_wbyte() {
+    char val;
+    char* ptr_byte = (char*) parse_ascii_hex_32(input_buf, 6);
+    val = parse_ascii_hex_byte(input_buf, 15);
+    *ptr_byte = val;
+}
+
+void cmd_ascii() {
+    int i;
+    char wordbuf[9];
+    char* ptr_byte = (char*) parse_ascii_hex_32(input_buf, 6);
+    char* ptr_byte_end = (char*) parse_ascii_hex_32(input_buf, 15);
+
+    while(ptr_byte < ptr_byte_end) {
+        ascii_hex_word(wordbuf, (int) ptr_byte);
+        print(wordbuf);
+        pchar(' ');
+        for(i = 0; i < 16; i++) {
+            if(i % 4 == 0) {
+                pchar(' ');
+            }
+            if(*ptr_byte >= 32 && *ptr_byte <= 126) {
+                pchar(*ptr_byte);
+            } else {
+                pchar('.');
+            }
+            pchar(' ');
+            ptr_byte++;
+        }
+        pchar('\n');
+    }
+}
+
+void process_input() {
 
     print("\n");
 
-    if(input_ptr == 2) {
-        if(str_cmp(cmd_u2, input_buf, 2)) {
-            print(help_uart2);
-        } else {
-            print(cmd_error);
-        }
-    } else if(input_ptr == 3) {
-        // check read switch
-        if(str_cmp(cmd_rsw, input_buf, 3)) {
-            print("Switch values: ");
-            val = 0 | IO_7 << 7 | IO_6 << 6 | IO_5 << 5 | IO_4 << 4 |
-                      IO_3 << 3 | IO_2 << 2 | IO_1 << 1 | IO_0;
-            pchar(ascii_byte_h(val));
-            pchar(ascii_byte_l(val));
-        } else {
-            print(cmd_error);
-        }
-    } else if(input_ptr == 4) {
-        if(str_cmp(cmd_help, input_buf, 4)) {
-            print(help);
-        } else if(str_cmp(cmd_rbtn, input_buf, 4)) {
-            val = PORTB & 0x3;
-            print("Button values: ");
-            pchar(ascii_byte_l(val));
-        } else if(str_cmp(cmd_u2rx, input_buf, 4)) {
-            timeout_count = 0;
-            while(timeout_count < UART_TIMEOUT && !U2STAbits.URXDA) {
-                timeout_count++;
-            }
-            if(U2STAbits.URXDA) {
-                val = U2RXREG;
-                pchar(ascii_byte_h(val));
-                pchar(ascii_byte_l(val));
-            } else {
-                print("UART receive timeout\n");
-            }
-        } else if(str_cmp(cmd_uart, input_buf, 4)) {
-            uart_forward();
-        } else if(str_cmp(cmd_port, input_buf, 4)) {
-            print(exppinout);
-        } else {
-            print(cmd_error);
-        }
-    } else if(input_ptr == 5) {
-        if(str_cmp(cmd_reset, input_buf, 5)) {
-            SoftReset();
-        } else if(str_cmp(cmd_wload, input_buf, 5)) {
-            wload();
-        } else if(str_cmp(cmd_fload, input_buf, 5)) {
-            fload();
-        } else if(str_cmp(cmd_party, input_buf, 5)) {
-            party();
-        } else {
-            print(cmd_error);
-        }
-    } else if(input_ptr == 6) {
-        if(str_cmp(cmd_u2pins, input_buf, 6)) {
-            print(u2pinout);
-        } else if(str_cmp(cmd_memory, input_buf, 6)) {
-            print(help_memory);
-        }  else {
-            print(cmd_error);
-        }
-    }else if(input_ptr == 7) {
-        if(str_cmp(cmd_wled, input_buf, 4)) {
-            val = parse_ascii_hex_byte(input_buf[5], input_buf[6]);
-            LEDS = val;
-        } else if(str_cmp(cmd_u2tx, input_buf, 4)) {
-            val = parse_ascii_hex_byte(input_buf[5], input_buf[6]);
-            while(!U2STAbits.TRMT);
-            U2TXREG = val;
-        } else {
-            print(cmd_error);
-        }
-    } else if(input_ptr == 11) {
-        if(str_cmp(cmd_u2bd, input_buf, 4)) {
-            val_int = parse_ascii_decimal(input_buf, 5, 6);
-            U2BRG = (48000000/val_int)/4 - 1;
-            print("New baud: ");
-            ascii_hex_word(wordbuf, val_int);
-            print(wordbuf);
-            pchar('\n');
-            print("brg value: ");
-            ascii_hex_word(wordbuf, U2BRG);
-            print(wordbuf);
-            pchar('\n');
-        } else {
-            print(cmd_error);
-        }
-    } else if(input_ptr == 14) {
-        if(str_cmp(cmd_range, input_buf, 5)) {
-            psstr(input_buf, 6, 8);
-            pchar(' ');
-            ptr_byte = (char*) parse_ascii_hex_word(input_buf[6], input_buf[7], input_buf[8], input_buf[9],
-                    input_buf[10], input_buf[11], input_buf[12], input_buf[13]);
-            for(i = 0; i < 16; i++) {
-                if(i % 4 == 0) {
-                    pchar(' ');
-                }
-                pchar(ascii_byte_h(*ptr_byte));
-                pchar(ascii_byte_l(*ptr_byte));
-                pchar(' ');
-                ptr_byte++;
-            }
-        } else if(str_cmp(cmd_rbyte, input_buf, 5)) {
-            ptr_byte = (char*) parse_ascii_hex_word(input_buf[6], input_buf[7], input_buf[8], input_buf[9],
-                    input_buf[10], input_buf[11], input_buf[12], input_buf[13]);
-            print("Value: ");
-            pchar(ascii_byte_h(*ptr_byte));
-            pchar(ascii_byte_l(*ptr_byte));
-        } else if(str_cmp(cmd_rword, input_buf, 5)) {
-            print("Words are displayed as little-endian\n");
-            ptr_byte = (char*) parse_ascii_hex_word(input_buf[6], input_buf[7], input_buf[8], input_buf[9],
-                    input_buf[10], input_buf[11], input_buf[12], input_buf[13]);
-            ascii_hex_word(wordbuf, (int) ptr_byte);
-            print(wordbuf);
-            pchar(' ');
-            for(i = 0; i < 4; i++) {
-                pchar(' ');
-                for(j = 3; j >= 0; j--) {
-                    pchar(ascii_byte_h(*(ptr_byte+j)));
-                    pchar(ascii_byte_l(*(ptr_byte+j)));
-                    pchar(' ');
-                }
-                ptr_byte += 4;
-            }
-            pchar('\n');
-        } else {
-            print(cmd_error);
-        }
-    } else if(input_ptr == 15) {
-        if(str_cmp(cmd_plpemu, input_buf, 6)) {
-            emu_plp5(parse_ascii_hex_word(input_buf[7], input_buf[8], input_buf[9], input_buf[10],
-                     input_buf[11], input_buf[12], input_buf[13], input_buf[14]));
-        } else {
-            print(cmd_error);
-        }
-    } else if(input_ptr == 17) {
-        if(str_cmp(cmd_wbyte, input_buf, 5)) {
-            ptr_byte = (char*) parse_ascii_hex_word(input_buf[6], input_buf[7], input_buf[8], input_buf[9],
-                    input_buf[10], input_buf[11], input_buf[12], input_buf[13]);
-            val = parse_ascii_hex_byte(input_buf[15], input_buf[16]);
-            *ptr_byte = val;
-        } else {
-            print(cmd_error);
-        }
-    } else if(input_ptr == 23) {
-        if(str_cmp(cmd_range, input_buf, 5)) {
-            ptr_byte = (char*) parse_ascii_hex_word(input_buf[6], input_buf[7], input_buf[8], input_buf[9],
-                    input_buf[10], input_buf[11], input_buf[12], input_buf[13]);
-            ptr_byte_end = (char*) parse_ascii_hex_word(input_buf[15], input_buf[16], input_buf[17], input_buf[18],
-                    input_buf[19], input_buf[20], input_buf[21], input_buf[22]);
+           if(parse("help",   OPR_NONE))   { print(help);
+    } else if(parse("memory", OPR_NONE))   { print(help_memory);
+    } else if(parse("port",   OPR_NONE))   { print(exppinout);
+    } else if(parse("reset",  OPR_NONE))   { SoftReset();
+    } else if(parse("plpemu", OPR_HEX32))  { emu_plp5(parse_ascii_hex_32(input_buf, 7));
+    } else if(parse("rsw",    OPR_NONE))   { cmd_rsw();
+    } else if(parse("rbtn",   OPR_NONE))   { cmd_rbtn();
+    } else if(parse("wled",   OPR_HEX8))   { cmd_wled();
+    } else if(parse("wload",  OPR_NONE))   { wload();
+    } else if(parse("fload",  OPR_NONE))   { fload();
+    } else if(parse("party",  OPR_NONE))   { party();
 
-            while(ptr_byte < ptr_byte_end) {
-                ascii_hex_word(wordbuf, (int) ptr_byte);
-                print(wordbuf);
-                pchar(' ');
-                for(i = 0; i < 16; i++) {
-                    if(i % 4 == 0) {
-                        pchar(' ');
-                    }
-                    pchar(ascii_byte_h(*ptr_byte));
-                    pchar(ascii_byte_l(*ptr_byte));
-                    pchar(' ');
-                    ptr_byte++;
-                }
-                pchar('\n');
-            }
-        } else if(str_cmp(cmd_rword, input_buf, 5)) {
-            print("Words are displayed as little-endian\n");
-            ptr_byte = (char*) parse_ascii_hex_word(input_buf[6], input_buf[7], input_buf[8], input_buf[9],
-                    input_buf[10], input_buf[11], input_buf[12], input_buf[13]);
-            ptr_byte_end = (char*) parse_ascii_hex_word(input_buf[15], input_buf[16], input_buf[17], input_buf[18],
-                    input_buf[19], input_buf[20], input_buf[21], input_buf[22]);
+    } else if(parse("u2",     OPR_NONE))   { print(help_uart2);
+    } else if(parse("u2pins", OPR_NONE))   { print(u2pinout);
+    } else if(parse("u2rx",   OPR_NONE))   { u2_read_print();
+    } else if(parse("u2tx",   OPR_HEX8))   { u2_write(parse_ascii_hex_byte(input_buf, 5));
+    } else if(parse("u2bd",   OPR_DEC6))   { u2_set_baud(parse_ascii_decimal(input_buf, 5, 6));
+    } else if(parse("uart",   OPR_NONE))   { uart_forward();
 
-            while(ptr_byte < ptr_byte_end) {
-                ascii_hex_word(wordbuf, (int) ptr_byte);
-                print(wordbuf);
-                pchar(' ');
-                for(i = 0; i < 4; i++) {
-                    pchar(' ');
-                    for(j = 3; j >= 0; j--) {
-                        pchar(ascii_byte_h(*(ptr_byte+j)));
-                        pchar(ascii_byte_l(*(ptr_byte+j)));
-                        pchar(' ');
-                    }
-                    ptr_byte += 4;
-                }
-                pchar('\n');
-            }
-        } else if(str_cmp(cmd_ascii, input_buf, 5)) {
-            ptr_byte = (char*) parse_ascii_hex_word(input_buf[6], input_buf[7], input_buf[8], input_buf[9],
-                    input_buf[10], input_buf[11], input_buf[12], input_buf[13]);
-            ptr_byte_end = (char*) parse_ascii_hex_word(input_buf[15], input_buf[16], input_buf[17], input_buf[18],
-                    input_buf[19], input_buf[20], input_buf[21], input_buf[22]);
+    } else if(parse("wbyte",  OPR_ADVAL))  { cmd_wbyte();
+    } else if(parse("rbyte",  OPR_HEX32))  { cmd_rbyte();
+    } else if(parse("range",  OPR_RANGE))  { cmd_range();
+    } else if(parse("rword",  OPR_RANGE))  { cmd_rword();
+    } else if(parse("rowle",  OPR_HEX32))  { cmd_rowle();
+    } else if(parse("row",    OPR_HEX32))  { cmd_row();
+    } else if(parse("ascii",  OPR_RANGE))  { cmd_ascii();
 
-            while(ptr_byte < ptr_byte_end) {
-                ascii_hex_word(wordbuf, (int) ptr_byte);
-                print(wordbuf);
-                pchar(' ');
-                for(i = 0; i < 16; i++) {
-                    if(i % 4 == 0) {
-                        pchar(' ');
-                    }
-                    if(*ptr_byte >= 32 && *ptr_byte <= 126) {
-                        pchar(*ptr_byte);
-                    } else {
-                        pchar('.');
-                    }
-                    pchar(' ');
-                    ptr_byte++;
-                }
-                pchar('\n');
-            }
-        } else {
-            print(cmd_error);
-        }
-    } else {
-        print(cmd_error);
-    }
+    } else { print(cmd_error); }
 
     print("\n> ");
 }
