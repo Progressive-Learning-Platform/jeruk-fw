@@ -30,7 +30,7 @@ void ascii_hex_word(char[], int);
 void uart_forward(void);
 void u2_set_baud(int);
 char u2_blocking_read(void);
-char u2_read_print(void);
+void u2_read_print(void);
 void u2_write(char);
 
 #ifdef	__cplusplus

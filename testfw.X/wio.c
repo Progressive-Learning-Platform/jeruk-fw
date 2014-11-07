@@ -197,7 +197,7 @@ char u2_blocking_read() {
     return U2RXREG;
 }
 
-char u2_read_print() {
+void u2_read_print() {
     int timeout_count = 0;
     char val;
     if(U2STAbits.OERR) {
