@@ -79,7 +79,6 @@ char parse_ascii_hex(char ascii) {
 }
 
 // parse 1-byte hex value in ascii to its literal value
-// [0] is the high nibble, [1] is the low nibble
 char parse_ascii_hex_byte(char* string, int start) {
     char high = parse_ascii_hex(string[start]);
     char low = parse_ascii_hex(string[start+1]);
@@ -87,22 +86,7 @@ char parse_ascii_hex_byte(char* string, int start) {
     return (high<<4) | low;
 }
 
-// parse 32-bit hex value in ascii to its literal value
-int parse_ascii_hex_word(char ascii_7, char ascii_6, char ascii_5, char ascii_4,
-        char ascii_3, char ascii_2, char ascii_1, char ascii_0) {
-    char b7 = parse_ascii_hex(ascii_7);
-    char b6 = parse_ascii_hex(ascii_6);
-    char b5 = parse_ascii_hex(ascii_5);
-    char b4 = parse_ascii_hex(ascii_4);
-    char b3 = parse_ascii_hex(ascii_3);
-    char b2 = parse_ascii_hex(ascii_2);
-    char b1 = parse_ascii_hex(ascii_1);
-    char b0 = parse_ascii_hex(ascii_0);
-
-    return (b7 << 28) | (b6 << 24) | (b5 << 20) | (b4 << 16) |
-           (b3 << 12) | (b2 << 8) | (b1 << 4) | (b0);
-}
-
+// parse 4-byte hex value in ascii to its literal value
 int parse_ascii_hex_32(char* string, int start) {
     char buf;
     int val = 0;
@@ -112,6 +96,11 @@ int parse_ascii_hex_32(char* string, int start) {
         val |= (buf << 4*(7-i));
     }
     return val;
+}
+
+// parse 1-bit hex value in ascii to its literal value
+char parse_ascii_hex_bit(char* string, int start) {
+    return string[start] == '1' ? 1 : 0;
 }
 
 char ascii_byte_h(char val) {

@@ -18,6 +18,7 @@
 #define OPR_DEC6  3
 #define OPR_RANGE 4
 #define OPR_ADVAL 5
+#define OPR_BIT   6
 
 char* version = "jeruk-pic32-wload-alpha-1";
 char* boot_info = "JERUK | http://plp.asu.edu";
@@ -159,6 +160,11 @@ void main() {
 char parse(char* cmd, char opr_type) {
     int i  = 0;
     char buf;
+    int cmd_len = 0;
+    while(cmd[cmd_len] != 0) {
+        cmd_len++;
+    }
+
     while((buf = cmd[i]) != 0 && i < input_ptr) {
         if(input_buf[i] != buf) {
             return 0;
@@ -166,31 +172,38 @@ char parse(char* cmd, char opr_type) {
         i++;
     }
 
-    if(opr_type == OPR_NONE && i != input_ptr) {
+    if(opr_type == OPR_NONE && cmd_len != input_ptr) {
         return 0;
     }
 
-    else if(opr_type == OPR_HEX32 && (i+1+8) != input_ptr) {
+    else if(opr_type == OPR_HEX32 && (cmd_len+1+8) != input_ptr) {
         return 0;
     }
 
-    else if(opr_type == OPR_HEX8 && (i+1+2) != input_ptr) {
+    else if(opr_type == OPR_HEX8 && (cmd_len+1+2) != input_ptr) {
         return 0;
     }
 
-    else if(opr_type == OPR_DEC6 && (i+1+6) != input_ptr) {
+    else if(opr_type == OPR_BIT && (cmd_len+1+1) != input_ptr) {
         return 0;
     }
 
-    else if(opr_type == OPR_RANGE && (i+1+8+1+8) != input_ptr) {
+    else if(opr_type == OPR_DEC6 && (cmd_len+1+6) != input_ptr) {
         return 0;
     }
 
-    else if(opr_type == OPR_ADVAL && (i+1+8+1+2) != input_ptr) {
+    else if(opr_type == OPR_RANGE && (cmd_len+1+8+1+8) != input_ptr) {
+        return 0;
+    }
+
+    else if(opr_type == OPR_ADVAL && (cmd_len+1+8+1+2) != input_ptr) {
         return 0;
     }
 
     if(opr_type == OPR_HEX32 || opr_type == OPR_HEX8) {
+        if(input_buf[i] != ' ') {
+            return 0;
+        }
         for(i=i+1; i < input_ptr; i++) {
             if(!((input_buf[i] >= '0' && input_buf[i] <= '9') ||
                (input_buf[i] >= 'a' && input_buf[i] <= 'f'))) {
@@ -199,7 +212,10 @@ char parse(char* cmd, char opr_type) {
         }
     }
 
-    if(opr_type == OPR_RANGE) {
+    else if(opr_type == OPR_RANGE) {
+        if(input_buf[i] != ' ' || input_buf[input_ptr-9] != ' ') {
+            return 0;
+        }
         for(i=i+1; i < input_ptr-9; i++) {
             if(!((input_buf[i] >= '0' && input_buf[i] <= '9') ||
                (input_buf[i] >= 'a' && input_buf[i] <= 'f'))) {
@@ -215,7 +231,10 @@ char parse(char* cmd, char opr_type) {
         }
     }
 
-    if(opr_type == OPR_ADVAL) {
+    else if(opr_type == OPR_ADVAL) {
+        if(input_buf[i] != ' ' || input_buf[input_ptr-3] != ' ') {
+            return 0;
+        }
         for(i=i+1; i < input_ptr-3; i++) {
             if(!((input_buf[i] >= '0' && input_buf[i] <= '9') ||
                (input_buf[i] >= 'a' && input_buf[i] <= 'f'))) {
@@ -231,11 +250,23 @@ char parse(char* cmd, char opr_type) {
         }
     }
 
-    if(opr_type == OPR_DEC6) {
+    else if(opr_type == OPR_DEC6) {
+        if(input_buf[i] != ' ') {
+            return 0;
+        }
         for(i=i+1; i < input_ptr; i++) {
             if(!(input_buf[i] >= '0' && input_buf[i] <= '9')) {
                 return 0;
             }
+        }
+    }
+
+    else if(opr_type == OPR_BIT) {
+        if(input_buf[i] != ' ') {
+            return 0;
+        }
+        if(input_buf[i+1] != '0' && input_buf[i+1] != '1') {
+            return 0;
         }
     }
 
@@ -393,34 +424,34 @@ void process_input() {
 
     print("\n");
 
-           if(parse("help",   OPR_NONE))   { print(help);
-    } else if(parse("memory", OPR_NONE))   { print(help_memory);
-    } else if(parse("port",   OPR_NONE))   { print(exppinout);
-    } else if(parse("reset",  OPR_NONE))   { SoftReset();
-    } else if(parse("plpemu", OPR_HEX32))  { emu_plp5(parse_ascii_hex_32(input_buf, 7));
-    } else if(parse("rsw",    OPR_NONE))   { cmd_rsw();
-    } else if(parse("rbtn",   OPR_NONE))   { cmd_rbtn();
-    } else if(parse("wled",   OPR_HEX8))   { cmd_wled();
-    } else if(parse("wload",  OPR_NONE))   { wload();
-    } else if(parse("fload",  OPR_NONE))   { fload();
-    } else if(parse("party",  OPR_NONE))   { party();
+         if(parse("help",   OPR_NONE))   print(help);
+    else if(parse("memory", OPR_NONE))   print(help_memory);
+    else if(parse("port",   OPR_NONE))   print(exppinout);
+    else if(parse("reset",  OPR_NONE))   SoftReset();
+    else if(parse("plpemu", OPR_HEX32))  emu_plp5(parse_ascii_hex_32(input_buf, 7));
+    else if(parse("rsw",    OPR_NONE))   cmd_rsw();
+    else if(parse("rbtn",   OPR_NONE))   cmd_rbtn();
+    else if(parse("wled",   OPR_HEX8))   cmd_wled();
+    else if(parse("wload",  OPR_NONE))   wload();
+    else if(parse("fload",  OPR_NONE))   fload();
+    else if(parse("party",  OPR_NONE))   party();
 
-    } else if(parse("u2",     OPR_NONE))   { print(help_uart2);
-    } else if(parse("u2pins", OPR_NONE))   { print(u2pinout);
-    } else if(parse("u2rx",   OPR_NONE))   { u2_read_print();
-    } else if(parse("u2tx",   OPR_HEX8))   { u2_write(parse_ascii_hex_byte(input_buf, 5));
-    } else if(parse("u2bd",   OPR_DEC6))   { u2_set_baud(parse_ascii_decimal(input_buf, 5, 6));
-    } else if(parse("uart",   OPR_NONE))   { uart_forward();
+    else if(parse("u2",     OPR_NONE))   print(help_uart2);
+    else if(parse("u2pins", OPR_NONE))   print(u2pinout);
+    else if(parse("u2rx",   OPR_NONE))   u2_read_print();
+    else if(parse("u2tx",   OPR_HEX8))   u2_write(parse_ascii_hex_byte(input_buf, 5));
+    else if(parse("u2bd",   OPR_DEC6))   u2_set_baud(parse_ascii_decimal(input_buf, 5, 6));
+    else if(parse("uart",   OPR_NONE))   uart_forward();
 
-    } else if(parse("wbyte",  OPR_ADVAL))  { cmd_wbyte();
-    } else if(parse("rbyte",  OPR_HEX32))  { cmd_rbyte();
-    } else if(parse("range",  OPR_RANGE))  { cmd_range();
-    } else if(parse("rword",  OPR_RANGE))  { cmd_rword();
-    } else if(parse("rowle",  OPR_HEX32))  { cmd_rowle();
-    } else if(parse("row",    OPR_HEX32))  { cmd_row();
-    } else if(parse("ascii",  OPR_RANGE))  { cmd_ascii();
+    else if(parse("wbyte",  OPR_ADVAL))  cmd_wbyte();
+    else if(parse("rbyte",  OPR_HEX32))  cmd_rbyte();
+    else if(parse("range",  OPR_RANGE))  cmd_range();
+    else if(parse("rword",  OPR_RANGE))  cmd_rword();
+    else if(parse("rowle",  OPR_HEX32))  cmd_rowle();
+    else if(parse("row",    OPR_HEX32))  cmd_row();
+    else if(parse("ascii",  OPR_RANGE))  cmd_ascii();
 
-    } else { print(cmd_error); }
+    else print(cmd_error);
 
     print("\n> ");
 }
@@ -442,11 +473,10 @@ void delay_ms(unsigned int milliseconds) {
 // print the (supported) CPU model the firmware is running on
 void print_cpumodel() {
     int val = DEVID & 0x0fffffff;
-    if(val == 0x6600053) {          print("PIC32MX270F256B");
-    } else if(val == 0x4D00053) {   print("PIC32MX250F128B");
-    } else if(val == 0x4D01053) {   print("PIC32MX230F064B");
-    } else                      {   print("Unknown");
-    }
+    if(val == 0x6600053)         print("PIC32MX270F256B");
+    else if(val == 0x4D00053)    print("PIC32MX250F128B");
+    else if(val == 0x4D01053)    print("PIC32MX230F064B");
+    else                         print("Unknown");    
 }
 
 void party() {
