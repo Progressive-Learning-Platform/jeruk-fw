@@ -45,17 +45,17 @@ OBJECTDIR=build/${CND_CONF}/${IMAGE_TYPE}
 DISTDIR=dist/${CND_CONF}/${IMAGE_TYPE}
 
 # Source Files Quoted if spaced
-SOURCEFILES_QUOTED_IF_SPACED=main.c wio.c wloader.c plpemu.c
+SOURCEFILES_QUOTED_IF_SPACED=main.c wio.c wloader.c plpemu.c envy.c
 
 # Object Files Quoted if spaced
-OBJECTFILES_QUOTED_IF_SPACED=${OBJECTDIR}/main.o ${OBJECTDIR}/wio.o ${OBJECTDIR}/wloader.o ${OBJECTDIR}/plpemu.o
-POSSIBLE_DEPFILES=${OBJECTDIR}/main.o.d ${OBJECTDIR}/wio.o.d ${OBJECTDIR}/wloader.o.d ${OBJECTDIR}/plpemu.o.d
+OBJECTFILES_QUOTED_IF_SPACED=${OBJECTDIR}/main.o ${OBJECTDIR}/wio.o ${OBJECTDIR}/wloader.o ${OBJECTDIR}/plpemu.o ${OBJECTDIR}/envy.o
+POSSIBLE_DEPFILES=${OBJECTDIR}/main.o.d ${OBJECTDIR}/wio.o.d ${OBJECTDIR}/wloader.o.d ${OBJECTDIR}/plpemu.o.d ${OBJECTDIR}/envy.o.d
 
 # Object Files
-OBJECTFILES=${OBJECTDIR}/main.o ${OBJECTDIR}/wio.o ${OBJECTDIR}/wloader.o ${OBJECTDIR}/plpemu.o
+OBJECTFILES=${OBJECTDIR}/main.o ${OBJECTDIR}/wio.o ${OBJECTDIR}/wloader.o ${OBJECTDIR}/plpemu.o ${OBJECTDIR}/envy.o
 
 # Source Files
-SOURCEFILES=main.c wio.c wloader.c plpemu.c
+SOURCEFILES=main.c wio.c wloader.c plpemu.c envy.c
 
 
 CFLAGS=
@@ -118,6 +118,12 @@ ${OBJECTDIR}/plpemu.o: plpemu.c  nbproject/Makefile-${CND_CONF}.mk
 	@${RM} ${OBJECTDIR}/plpemu.o 
 	@${FIXDEPS} "${OBJECTDIR}/plpemu.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG -D__MPLAB_DEBUGGER_PK3=1 -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION) -I"C:/Program Files (x86)/Microchip/xc32/v1.33/pic32mx/include" -MMD -MF "${OBJECTDIR}/plpemu.o.d" -o ${OBJECTDIR}/plpemu.o plpemu.c   -save-temps=obj
 	
+${OBJECTDIR}/envy.o: envy.c  nbproject/Makefile-${CND_CONF}.mk
+	@${MKDIR} ${OBJECTDIR} 
+	@${RM} ${OBJECTDIR}/envy.o.d 
+	@${RM} ${OBJECTDIR}/envy.o 
+	@${FIXDEPS} "${OBJECTDIR}/envy.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG -D__MPLAB_DEBUGGER_PK3=1 -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION) -I"C:/Program Files (x86)/Microchip/xc32/v1.33/pic32mx/include" -MMD -MF "${OBJECTDIR}/envy.o.d" -o ${OBJECTDIR}/envy.o envy.c   -save-temps=obj
+	
 else
 ${OBJECTDIR}/main.o: main.c  nbproject/Makefile-${CND_CONF}.mk
 	@${MKDIR} ${OBJECTDIR} 
@@ -142,6 +148,12 @@ ${OBJECTDIR}/plpemu.o: plpemu.c  nbproject/Makefile-${CND_CONF}.mk
 	@${RM} ${OBJECTDIR}/plpemu.o.d 
 	@${RM} ${OBJECTDIR}/plpemu.o 
 	@${FIXDEPS} "${OBJECTDIR}/plpemu.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION) -I"C:/Program Files (x86)/Microchip/xc32/v1.33/pic32mx/include" -MMD -MF "${OBJECTDIR}/plpemu.o.d" -o ${OBJECTDIR}/plpemu.o plpemu.c   -save-temps=obj
+	
+${OBJECTDIR}/envy.o: envy.c  nbproject/Makefile-${CND_CONF}.mk
+	@${MKDIR} ${OBJECTDIR} 
+	@${RM} ${OBJECTDIR}/envy.o.d 
+	@${RM} ${OBJECTDIR}/envy.o 
+	@${FIXDEPS} "${OBJECTDIR}/envy.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION) -I"C:/Program Files (x86)/Microchip/xc32/v1.33/pic32mx/include" -MMD -MF "${OBJECTDIR}/envy.o.d" -o ${OBJECTDIR}/envy.o envy.c   -save-temps=obj
 	
 endif
 

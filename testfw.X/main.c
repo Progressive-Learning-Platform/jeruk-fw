@@ -30,6 +30,8 @@
 #define OPR_RANGE 4
 #define OPR_ADVAL 5
 #define OPR_BIT   6
+#define OPR_BIT8  7
+#define OPR_ADBIT 8
 
 char* version = "jeruk-pic32-wload-alpha-1";
 char* boot_info = "JERUK | http://plp.asu.edu";
@@ -69,7 +71,8 @@ char* help_memory =
              "  ascii <start> <end>  print memory contents as ASCII characters\n"
              "  \nNotes:\n"
              "  Addresses must be entered as lowercase hex, e.g. a0004020\n"
-             "  Byte values must be entered as a two-digit hex, e.g. a8\n";
+             "  Byte values must be entered as a two-digit hex, e.g. a8\n"
+             "    or an 8-bit value, e.g. 00110101\n";
 
 char* u2pinout = "UART 2 Pins Designation (VDD=3.3V)\n\n"
                  "Header: P6\n"
@@ -187,7 +190,7 @@ char parse(char* cmd, char opr_type) {
         return 0;
     }
 
-    else if(opr_type == OPR_HEX32 && (cmd_len+1+8) != input_ptr) {
+    else if((opr_type == OPR_HEX32 || opr_type == OPR_BIT8) && (cmd_len+1+8) != input_ptr) {
         return 0;
     }
 
@@ -203,7 +206,7 @@ char parse(char* cmd, char opr_type) {
         return 0;
     }
 
-    else if(opr_type == OPR_RANGE && (cmd_len+1+8+1+8) != input_ptr) {
+    else if((opr_type == OPR_RANGE || opr_type == OPR_ADBIT) && (cmd_len+1+8+1+8) != input_ptr) {
         return 0;
     }
 
@@ -261,6 +264,24 @@ char parse(char* cmd, char opr_type) {
         }
     }
 
+    else if(opr_type == OPR_ADBIT) {
+        if(input_buf[i] != ' ' || input_buf[input_ptr-9] != ' ') {
+            return 0;
+        }
+        for(i=i+1; i < input_ptr-9; i++) {
+            if(!((input_buf[i] >= '0' && input_buf[i] <= '9') ||
+               (input_buf[i] >= 'a' && input_buf[i] <= 'f'))) {
+                return 0;
+            }
+        }
+
+        for(i=input_ptr-8; i < input_ptr; i++) {
+            if(input_buf[i] != '0' && input_buf[i] != '1') {
+                return 0;
+            }
+        }
+    }
+
     else if(opr_type == OPR_DEC6) {
         if(input_buf[i] != ' ') {
             return 0;
@@ -272,12 +293,14 @@ char parse(char* cmd, char opr_type) {
         }
     }
 
-    else if(opr_type == OPR_BIT) {
+    else if(opr_type == OPR_BIT || opr_type == OPR_BIT8) {
         if(input_buf[i] != ' ') {
             return 0;
         }
-        if(input_buf[i+1] != '0' && input_buf[i+1] != '1') {
-            return 0;
+        for(i=i+1; i < input_ptr; i++) {
+            if(input_buf[i] != '0' && input_buf[i] != '1') {
+                return 0;
+            }
         }
     }
 
@@ -386,8 +409,13 @@ void cmd_rbtn() {
     pchar(ascii_byte_l(val));
 }
 
-void cmd_wled() {
-    char val = parse_ascii_hex_byte(input_buf, 5);
+void cmd_wled(char hex) {
+    char val;
+    if(hex) {
+        val = parse_ascii_hex_byte(input_buf, 5);
+    } else {
+        val = parse_ascii_bit_8(input_buf, 5);
+    }
     LEDS = val;
 }
 
@@ -398,10 +426,14 @@ void cmd_rbyte() {
     pchar(ascii_byte_l(*ptr_byte));
 }
 
-void cmd_wbyte() {
+void cmd_wbyte(char hex) {
     char val;
     char* ptr_byte = (char*) parse_ascii_hex_32(input_buf, 6);
-    val = parse_ascii_hex_byte(input_buf, 15);
+    if(hex) {
+        val = parse_ascii_hex_byte(input_buf, 15);
+    } else {
+        val = parse_ascii_bit_8(input_buf, 15);
+    }
     *ptr_byte = val;
 }
 
@@ -442,7 +474,8 @@ void process_input() {
     else if(parse("plpemu", OPR_HEX32))  emu_plp5(parse_ascii_hex_32(input_buf, 7));
     else if(parse("rsw",    OPR_NONE))   cmd_rsw();
     else if(parse("rbtn",   OPR_NONE))   cmd_rbtn();
-    else if(parse("wled",   OPR_HEX8))   cmd_wled();
+    else if(parse("wled",   OPR_HEX8))   cmd_wled(1);
+    else if(parse("wled",   OPR_BIT8))   cmd_wled(0);
     else if(parse("wload",  OPR_NONE))   wload();
     else if(parse("fload",  OPR_NONE))   fload();
     else if(parse("party",  OPR_NONE))   party();
@@ -454,7 +487,8 @@ void process_input() {
     else if(parse("u2bd",   OPR_DEC6))   u2_set_baud(parse_ascii_decimal(input_buf, 5, 6));
     else if(parse("uart",   OPR_NONE))   uart_forward();
 
-    else if(parse("wbyte",  OPR_ADVAL))  cmd_wbyte();
+    else if(parse("wbyte",  OPR_ADVAL))  cmd_wbyte(1);
+    else if(parse("wbyte",  OPR_ADBIT))  cmd_wbyte(0);
     else if(parse("rbyte",  OPR_HEX32))  cmd_rbyte();
     else if(parse("range",  OPR_RANGE))  cmd_range();
     else if(parse("rword",  OPR_RANGE))  cmd_rword();

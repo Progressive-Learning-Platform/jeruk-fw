@@ -8,6 +8,7 @@
       <itemPath>wloader.h</itemPath>
       <itemPath>plpemu.h</itemPath>
       <itemPath>proccfg.h</itemPath>
+      <itemPath>envy.h</itemPath>
     </logicalFolder>
     <logicalFolder name="LinkerScript"
                    displayName="Linker Files"
@@ -20,6 +21,7 @@
       <itemPath>wio.c</itemPath>
       <itemPath>wloader.c</itemPath>
       <itemPath>plpemu.c</itemPath>
+      <itemPath>envy.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
