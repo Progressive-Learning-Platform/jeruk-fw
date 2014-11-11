@@ -76,6 +76,21 @@ char blocking_read() {
     return U1RXREG;
 }
 
+int readline(char* input_buf, int size) {
+    int ptr = 0;
+    char buf;
+    while(1) {
+        buf = blocking_read();
+        if(ptr == size-1 || buf == 0x0d) {
+            return ptr;
+        } else {
+            pchar(buf);
+            input_buf[ptr] = buf;
+            ptr++;
+        }
+    }
+}
+
 char str_cmp(char* str1, char* str2, int len) {
     int i;
     for(i = 0; i < len; i++) {

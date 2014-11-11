@@ -36,6 +36,7 @@ void print(char*);
 void psstr(char*, int, int);
 void pchar(char);
 char blocking_read(void);
+int readline(char*, int);
 char str_cmp(char*, char*, int);
 char parse_ascii_hex_byte(char*, int);
 int parse_ascii_hex_32(char*, int);

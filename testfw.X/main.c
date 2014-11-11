@@ -137,7 +137,6 @@ void jeruk_init() {
 }
 
 void main() {
-    char buf;
     char wordbuf[9];
 
     jeruk_init();
@@ -159,15 +158,8 @@ void main() {
     input_ptr = 0;
 
     while(1) {
-        buf = blocking_read();
-        if(input_ptr == 79 || buf == 0x0d) {
-            process_input();
-            input_ptr = 0;
-        } else {
-            pchar(buf);
-            input_buf[input_ptr] = buf;
-            input_ptr++;
-        }
+        input_ptr = readline(input_buf, 80);
+        process_input();
     }
 }
 
