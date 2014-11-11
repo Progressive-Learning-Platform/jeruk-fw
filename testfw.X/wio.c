@@ -117,11 +117,11 @@ int parse_ascii_hex_32(char* string, int start) {
 }
 
 // parse 1-bit hex value in ascii to its literal value
-char parse_ascii_bit(char* string, int index) {
+char parse_ascii_bin(char* string, int index) {
     return string[index] == '1' ? 1 : 0;
 }
 
-char parse_ascii_bit_8(char* string, int start) {
+char parse_ascii_bin_8(char* string, int start) {
     char val = 0;
     int i;
     for(i = 0; i < 8; i++) {

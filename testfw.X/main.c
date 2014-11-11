@@ -29,8 +29,8 @@
 #define OPR_DEC6  3
 #define OPR_RANGE 4
 #define OPR_ADVAL 5
-#define OPR_BIT   6
-#define OPR_BIT8  7
+#define OPR_BIN   6
+#define OPR_BIN8  7
 #define OPR_ADBIT 8
 
 char* version = "jeruk-pic32-wload-alpha-1";
@@ -190,7 +190,7 @@ char parse(char* cmd, char opr_type) {
         return 0;
     }
 
-    else if((opr_type == OPR_HEX32 || opr_type == OPR_BIT8) && (cmd_len+1+8) != input_ptr) {
+    else if((opr_type == OPR_HEX32 || opr_type == OPR_BIN8) && (cmd_len+1+8) != input_ptr) {
         return 0;
     }
 
@@ -198,7 +198,7 @@ char parse(char* cmd, char opr_type) {
         return 0;
     }
 
-    else if(opr_type == OPR_BIT && (cmd_len+1+1) != input_ptr) {
+    else if(opr_type == OPR_BIN && (cmd_len+1+1) != input_ptr) {
         return 0;
     }
 
@@ -293,7 +293,7 @@ char parse(char* cmd, char opr_type) {
         }
     }
 
-    else if(opr_type == OPR_BIT || opr_type == OPR_BIT8) {
+    else if(opr_type == OPR_BIN || opr_type == OPR_BIN8) {
         if(input_buf[i] != ' ') {
             return 0;
         }
@@ -414,7 +414,7 @@ void cmd_wled(char hex) {
     if(hex) {
         val = parse_ascii_hex_byte(input_buf, 5);
     } else {
-        val = parse_ascii_bit_8(input_buf, 5);
+        val = parse_ascii_bin_8(input_buf, 5);
     }
     LEDS = val;
 }
@@ -432,7 +432,7 @@ void cmd_wbyte(char hex) {
     if(hex) {
         val = parse_ascii_hex_byte(input_buf, 15);
     } else {
-        val = parse_ascii_bit_8(input_buf, 15);
+        val = parse_ascii_bin_8(input_buf, 15);
     }
     *ptr_byte = val;
 }
@@ -475,7 +475,7 @@ void process_input() {
     else if(parse("rsw",    OPR_NONE))   cmd_rsw();
     else if(parse("rbtn",   OPR_NONE))   cmd_rbtn();
     else if(parse("wled",   OPR_HEX8))   cmd_wled(1);
-    else if(parse("wled",   OPR_BIT8))   cmd_wled(0);
+    else if(parse("wled",   OPR_BIN8))   cmd_wled(0);
     else if(parse("wload",  OPR_NONE))   wload();
     else if(parse("fload",  OPR_NONE))   fload();
     else if(parse("party",  OPR_NONE))   party();
