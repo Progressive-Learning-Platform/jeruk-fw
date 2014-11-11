@@ -81,7 +81,7 @@ int readline(char* input_buf, int size) {
     char buf;
     while(1) {
         buf = blocking_read();
-        if(ptr == size-1 || buf == 0x0d) {
+        if(ptr == size || buf == 0x0d) {
             return ptr;
         } else {
             pchar(buf);
