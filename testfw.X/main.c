@@ -35,6 +35,7 @@
 
 char* version = "jeruk-pic32-wload-alpha-1";
 char* boot_info = "JERUK | http://plp.asu.edu";
+char* copyright = "Copyright (c)2014 PLP Contributors";
 char* cmd_error = "ERROR: Invalid or malformed command";
 char input_buf[80];
 char input_ptr;
@@ -144,6 +145,8 @@ void main() {
     // we default into interactive mode
     pchar('\n');
     print(boot_info);
+    pchar('\n');
+    print(copyright);
     print("\nFirmware: ");
     print(version);
     pchar('\n');
