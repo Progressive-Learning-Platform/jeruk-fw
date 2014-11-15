@@ -26,10 +26,13 @@
 #endif
 
 // PIC32MX1XX/2XX flash row and page sizes
-#define ROW_SIZE_BYTES  128
-#define PAGE_SIZE_BYTES 1024
-#define ROW_SIZE_MASK   0x7F
-#define PAGE_SIZE_MASK  0x3FF
+#define ROW_SIZE_BYTES      128
+#define PAGE_SIZE_BYTES     1024
+#define ROW_SIZE_MASK       0x7F
+#define PAGE_SIZE_MASK      0x3FF
+
+#define FLASH_BASE_ADDR     0x9D000000
+#define RAMBUF_BASE_ADDR    0xA0002000
 
 // JERUK Flash loader routines
 // Reference Document: DS61121F (PIC32 Family Reference Manual Chapter 5)
@@ -96,18 +99,23 @@ unsigned int envy_erase_page(void* address) {
     return res;
 }
 
-// envy write routine. Each slot is 64KB with the first slot reserved for
-// the bootloader. Size can not exceed 64KB.
-void envy_write_stream(char slot, unsigned int size) {
+// envy write routine. The routine takes the offset from the flash base address
+// to start programming to and the size of data. Size can not exceed 64KB.
+void envy_write_stream(unsigned int base_offset, unsigned int size) {
     unsigned int byte_offset = 0;
-    unsigned int base = 0xbd000000 + slot * 0x10000;
+    unsigned int base = FLASH_BASE_ADDR + base_offset;
     unsigned int i = 0;
     unsigned int page_num = 0;
     unsigned int res;
     unsigned char checksum = 0;
-    char* buf = (char*) 0xa0001000;
+    char* buf = (char*) RAMBUF_BASE_ADDR;
     void* page_ptr;
     void* row_ptr;
+
+    // check for page alignment
+    if(base & PAGE_SIZE_MASK != 0) {
+        return;
+    }
 
     // round up size to row size
     unsigned int fragment = (PAGE_SIZE_BYTES - (size & PAGE_SIZE_MASK)) & PAGE_SIZE_MASK;
@@ -120,9 +128,9 @@ void envy_write_stream(char slot, unsigned int size) {
         }
         byte_offset++;
 
-        // host better wait for us now, or we'll miss the bytestream!
+        // host better wait for us now, or we'll miss the byte stream!
         if((byte_offset & PAGE_SIZE_MASK) == 0) {
-            LEDS = 0x01;
+            LEDS = 0b00001;
             page_ptr = (void*) (base + PAGE_SIZE_BYTES*page_num);          
             res = envy_erase_page(page_ptr);
             if(res) {
@@ -131,7 +139,7 @@ void envy_write_stream(char slot, unsigned int size) {
                 pchar('e');
                 while(1);
             }
-            LEDS = 0x02;
+            LEDS = 0b00010;
             for(i = 0; i < (PAGE_SIZE_BYTES / ROW_SIZE_BYTES); i++) {
                 row_ptr = (void*) ((unsigned int) page_ptr + i*ROW_SIZE_BYTES);
                 res = envy_write_row(row_ptr,
@@ -143,9 +151,9 @@ void envy_write_stream(char slot, unsigned int size) {
                     while(1);
                 }
             }
-            LEDS = 0x00;            
+            LEDS = 0b00000;
             page_num++;
-            pchar('v');
+            pchar('v'); // tell host that we're ready to receive again
         }
     }
 
@@ -161,16 +169,21 @@ void envy_write_stream(char slot, unsigned int size) {
 void envy() {
     char buf;
     char slot;
-    unsigned int size;
+    unsigned int int_temp;
+    void (*fptr)(void); // function pointer to jump to
     buf = blocking_read();
     switch(buf) {
         case 'n':
             slot = blocking_read();
-            size = ((unsigned int) blocking_read() & 0xff) << 8;
-            size |= ((unsigned int) blocking_read() & 0xff);
-            envy_write_stream(slot, size);
+            int_temp = ((unsigned int) blocking_read() & 0xff) << 8;
+            int_temp |= ((unsigned int) blocking_read() & 0xff);
+            envy_write_stream(slot * 0x10000, int_temp);
             break;
         case 'j':
+            slot = blocking_read();
+            int_temp = FLASH_BASE_ADDR + slot * 0x10000;
+            fptr = (void (*)(void)) int_temp;
+            fptr();
             break;
         case 'q':
             return;

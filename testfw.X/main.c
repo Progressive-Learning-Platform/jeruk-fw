@@ -91,10 +91,40 @@ char* exppinout = "Expansion Port Pins Designation\n\n"
                   "20   18   16   14   12   10   8    6    4    2\n"
                   "5V   5V   VSS  VSS  VSS  VSS  VSS  U2TX 3.3V U2RX\n";
 
+void jeruk_init(void);
 void delay_ms(unsigned int);
 void print_cpumodel(void);
 void process_input(void);
 void party(void);
+
+void main() {
+    char wordbuf[9];
+
+    jeruk_init();
+
+    // we default into interactive mode
+    pchar('\n');
+    print(boot_info);
+    pchar('\n');
+    print(copyright);
+    print("\nFirmware: ");
+    print(version);
+    pchar('\n');
+    ascii_hex_word(wordbuf, DEVID & 0x0fffffff);
+    print("Microcontroller ID: ");
+    psstr(wordbuf, 1, 7);
+    print(" (");
+    print_cpumodel();
+    print(") Rev: ");
+    pchar(ascii_byte_l((char)((DEVID & 0xf0000000) >> 28)));
+    print("\n> ");
+    input_ptr = 0;
+
+    while(1) {
+        input_ptr = readline(input_buf, 80);
+        process_input();
+    }
+}
 
  // JERUK board initialization
 void jeruk_init() {
@@ -135,35 +165,6 @@ void jeruk_init() {
         fload();
     } else {
         LEDS = 0;
-    }
-}
-
-void main() {
-    char wordbuf[9];
-
-    jeruk_init();
-
-    // we default into interactive mode
-    pchar('\n');
-    print(boot_info);
-    pchar('\n');
-    print(copyright);
-    print("\nFirmware: ");
-    print(version);
-    pchar('\n');
-    ascii_hex_word(wordbuf, DEVID & 0x0fffffff);
-    print("Microcontroller ID: ");
-    psstr(wordbuf, 1, 7);
-    print(" (");
-    print_cpumodel();
-    print(") Rev: ");
-    pchar(ascii_byte_l((char)((DEVID & 0xf0000000) >> 28)));
-    print("\n> ");
-    input_ptr = 0;
-
-    while(1) {
-        input_ptr = readline(input_buf, 80);
-        process_input();
     }
 }
 

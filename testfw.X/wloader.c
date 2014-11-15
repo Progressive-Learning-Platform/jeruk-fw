@@ -58,7 +58,7 @@ void wload() {
     char stop = 0;
     char buf;
     char wordbuf[9];
-    char i;
+    void (*fptr)(void); // function pointer to jump to
     wload_checksum = 0; // reset checksum everytime wload routine is invoked
     int valbuf;
     wload_pc = (int*) 0;
@@ -90,10 +90,8 @@ void wload() {
                 break;
             case 'j': // jump to current loader pc
                 valbuf = (int) wload_pc;
-                __asm__("move $s0, %0\n"
-                        "jr $s0\n"
-                        "nop"
-                        : : "r"(valbuf) : "s0");
+                fptr = (void (*)(void)) valbuf;
+                fptr();
                 break;
             case 'p': // print pc
                 ascii_hex_word(wordbuf, (int) wload_pc);
