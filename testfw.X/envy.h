@@ -30,8 +30,13 @@
 extern "C" {
 #endif
 
-
-
+unsigned int NVMUnlock (unsigned int);
+unsigned int envy_write_word (void*, unsigned int);
+unsigned int envy_write_row(void*, void*);
+unsigned int envy_erase_page(void*);
+void envy_write_stream(char, unsigned int);
+void envy(void);
+void envy_clear(void);
 
 #ifdef	__cplusplus
 }

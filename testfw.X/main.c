@@ -47,6 +47,7 @@ char* help = "General operations:\n"
              "  port                 expansion port pinout information\n"
              "  reset                do a soft reset of the CPU\n"
              "  plpemu <addr>        invoke the on-chip PLP CPU emulator\n"
+             "  envy                 invoke the flash loader\n"
              "  rsw                  read switches\n"
              "  wled <val>           write LED values\n"
              "  rbtn                 read buttons 0 and 1\n";
@@ -115,9 +116,9 @@ void jeruk_init() {
     ANSELA = 0;
     ANSELB = 0;
 
-    BMXDKPBA = 0x4000; // 16k of RAM for data, rest for program
-    BMXDUDBA = 0x10000;
-    BMXDUPBA = 0x10000;
+    //BMXDKPBA = 0x4000; // 16k of RAM for data, rest for program
+    //BMXDUDBA = 0x10000;
+    //BMXDUPBA = 0x10000;
 
     LEDS = 0b00100;
     delay_ms(50);
@@ -473,6 +474,8 @@ void process_input() {
     else if(parse("wled",   OPR_BIN8))   cmd_wled(0);
     else if(parse("wload",  OPR_NONE))   wload();
     else if(parse("fload",  OPR_NONE))   fload();
+    else if(parse("envy",   OPR_NONE))   envy();
+    else if(parse("envycl" ,OPR_NONE))   envy_clear();
     else if(parse("party",  OPR_NONE))   party();
 
     else if(parse("u2",     OPR_NONE))   print(help_uart2);

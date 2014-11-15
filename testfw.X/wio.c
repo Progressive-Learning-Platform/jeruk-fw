@@ -173,6 +173,11 @@ char ascii_nybble(char val) {
     }
 }
 
+void print_ascii_byte(char val) {
+    pchar(ascii_byte_h(val));
+    pchar(ascii_byte_l(val));
+}
+
 void ascii_hex_word(char buf[], int val) {
     buf[0] = ascii_nybble((val & 0xf0000000) >> 28);
     buf[1] = ascii_nybble((val & 0x0f000000) >> 24);

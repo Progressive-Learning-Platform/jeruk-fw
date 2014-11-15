@@ -44,6 +44,7 @@ char parse_ascii_bin(char*, int);
 char parse_ascii_bin_8(char*, int);
 char ascii_byte_h(char);
 char ascii_byte_l(char);
+void print_ascii_byte(char);
 char parse_ascii_hex(char);
 char ascii_nybble(char);
 void ascii_hex_word(char[], int);
