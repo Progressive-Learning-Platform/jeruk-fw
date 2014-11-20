@@ -21,6 +21,7 @@
 // Include your processor header here
 #include <xc.h>
 #include <proc/p32mx270f256b.h>
+#include "wio.h"
 
 #define UART_TIMEOUT    7200000L
 
@@ -267,4 +268,140 @@ void u2_read_print() {
 void u2_write(char a) {
     while(!U2STAbits.TRMT);
     U2TXREG = a;
+}
+
+char parse(char* cmd, char opr_type) {
+    int i  = 0;
+    char buf;
+    int cmd_len = 0;
+    while(cmd[cmd_len] != 0) {
+        cmd_len++;
+    }
+
+    while((buf = cmd[i]) != 0 && i < input_ptr) {
+        if(input_buf[i] != buf) {
+            return 0;
+        }
+        i++;
+    }
+
+    if(opr_type == OPR_NONE && cmd_len != input_ptr) {
+        return 0;
+    }
+
+    else if((opr_type == OPR_HEX32 || opr_type == OPR_BIN8) && (cmd_len+1+8) != input_ptr) {
+        return 0;
+    }
+
+    else if(opr_type == OPR_HEX8 && (cmd_len+1+2) != input_ptr) {
+        return 0;
+    }
+
+    else if(opr_type == OPR_BIN && (cmd_len+1+1) != input_ptr) {
+        return 0;
+    }
+
+    else if(opr_type == OPR_DEC6 && (cmd_len+1+6) != input_ptr) {
+        return 0;
+    }
+
+    else if((opr_type == OPR_RANGE || opr_type == OPR_ADBIT) && (cmd_len+1+8+1+8) != input_ptr) {
+        return 0;
+    }
+
+    else if(opr_type == OPR_ADVAL && (cmd_len+1+8+1+2) != input_ptr) {
+        return 0;
+    }
+
+    if(opr_type == OPR_HEX32 || opr_type == OPR_HEX8) {
+        if(input_buf[i] != ' ') {
+            return 0;
+        }
+        for(i=i+1; i < input_ptr; i++) {
+            if(!((input_buf[i] >= '0' && input_buf[i] <= '9') ||
+               (input_buf[i] >= 'a' && input_buf[i] <= 'f'))) {
+                return 0;
+            }
+        }
+    }
+
+    else if(opr_type == OPR_RANGE) {
+        if(input_buf[i] != ' ' || input_buf[input_ptr-9] != ' ') {
+            return 0;
+        }
+        for(i=i+1; i < input_ptr-9; i++) {
+            if(!((input_buf[i] >= '0' && input_buf[i] <= '9') ||
+               (input_buf[i] >= 'a' && input_buf[i] <= 'f'))) {
+                return 0;
+            }
+        }
+
+        for(i=input_ptr-8; i < input_ptr; i++) {
+            if(!((input_buf[i] >= '0' && input_buf[i] <= '9') ||
+               (input_buf[i] >= 'a' && input_buf[i] <= 'f'))) {
+                return 0;
+            }
+        }
+    }
+
+    else if(opr_type == OPR_ADVAL) {
+        if(input_buf[i] != ' ' || input_buf[input_ptr-3] != ' ') {
+            return 0;
+        }
+        for(i=i+1; i < input_ptr-3; i++) {
+            if(!((input_buf[i] >= '0' && input_buf[i] <= '9') ||
+               (input_buf[i] >= 'a' && input_buf[i] <= 'f'))) {
+                return 0;
+            }
+        }
+
+        for(i=input_ptr-2; i < input_ptr; i++) {
+            if(!((input_buf[i] >= '0' && input_buf[i] <= '9') ||
+               (input_buf[i] >= 'a' && input_buf[i] <= 'f'))) {
+                return 0;
+            }
+        }
+    }
+
+    else if(opr_type == OPR_ADBIT) {
+        if(input_buf[i] != ' ' || input_buf[input_ptr-9] != ' ') {
+            return 0;
+        }
+        for(i=i+1; i < input_ptr-9; i++) {
+            if(!((input_buf[i] >= '0' && input_buf[i] <= '9') ||
+               (input_buf[i] >= 'a' && input_buf[i] <= 'f'))) {
+                return 0;
+            }
+        }
+
+        for(i=input_ptr-8; i < input_ptr; i++) {
+            if(input_buf[i] != '0' && input_buf[i] != '1') {
+                return 0;
+            }
+        }
+    }
+
+    else if(opr_type == OPR_DEC6) {
+        if(input_buf[i] != ' ') {
+            return 0;
+        }
+        for(i=i+1; i < input_ptr; i++) {
+            if(!(input_buf[i] >= '0' && input_buf[i] <= '9')) {
+                return 0;
+            }
+        }
+    }
+
+    else if(opr_type == OPR_BIN || opr_type == OPR_BIN8) {
+        if(input_buf[i] != ' ') {
+            return 0;
+        }
+        for(i=i+1; i < input_ptr; i++) {
+            if(input_buf[i] != '0' && input_buf[i] != '1') {
+                return 0;
+            }
+        }
+    }
+
+    return 1;
 }

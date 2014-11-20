@@ -30,6 +30,19 @@
 extern "C" {
 #endif
 
+#define OPR_NONE  0
+#define OPR_HEX32 1
+#define OPR_HEX8  2
+#define OPR_DEC6  3
+#define OPR_RANGE 4
+#define OPR_ADVAL 5
+#define OPR_BIN   6
+#define OPR_BIN8  7
+#define OPR_ADBIT 8
+
+char input_buf[80];
+char input_ptr;
+
 void init_uart1(int, int);
 void init_uart2(int, int);
 void print(char*);
@@ -53,6 +66,7 @@ void u2_set_baud(int);
 char u2_blocking_read(void);
 void u2_read_print(void);
 void u2_write(char);
+char parse(char*, char);
 
 #ifdef	__cplusplus
 }
