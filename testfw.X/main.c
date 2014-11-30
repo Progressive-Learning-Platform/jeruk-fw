@@ -22,6 +22,7 @@
 #include "wloader.h"
 #include "plpemu.h"
 #include "proccfg.h"
+#include "spi.h"
 
 char* version = "jeruk-pic32-wload-alpha-1";
 char* boot_info = "JERUK | http://plp.asu.edu";
@@ -328,7 +329,8 @@ void process_input() {
     else if(parse("wload",  OPR_NONE))   wload();
     else if(parse("fload",  OPR_NONE))   fload();
     else if(parse("envy",   OPR_NONE))   envy();
-    else if(parse("envycl" ,OPR_NONE))   envy_clear();
+    else if(parse("envycl", OPR_NONE))   envy_clear();
+    else if(parse("spi",    OPR_NONE))   spi();
     else if(parse("party",  OPR_NONE))   party();
 
     else if(parse("u2",     OPR_NONE))   print(help_uart2);
