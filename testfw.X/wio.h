@@ -48,6 +48,7 @@ void init_uart2(int, int);
 void print(char*);
 void psstr(char*, int, int);
 void pchar(char);
+void pnewl(void);
 char blocking_read(void);
 int readline(char*, int);
 char str_cmp(char*, char*, int);
