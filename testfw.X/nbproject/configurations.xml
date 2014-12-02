@@ -24,7 +24,6 @@
       <itemPath>wloader.c</itemPath>
       <itemPath>plpemu.c</itemPath>
       <itemPath>envy.c</itemPath>
-      <itemPath>uart2.c</itemPath>
       <itemPath>spi.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
@@ -44,7 +43,7 @@
         <platformTool>PICkit3PlatformTool</platformTool>
         <languageToolchain>XC32</languageToolchain>
         <languageToolchainVersion>1.33</languageToolchainVersion>
-        <platform>3</platform>
+        <platform>2</platform>
       </toolsSet>
       <compileType>
         <linkerTool>

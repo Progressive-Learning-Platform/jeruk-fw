@@ -22,6 +22,7 @@
 #include "wloader.h"
 #include "plpemu.h"
 #include "proccfg.h"
+#include "envy.h"
 #include "spi.h"
 
 char* version = "jeruk-pic32-wload-alpha-1";
@@ -29,56 +30,56 @@ char* boot_info = "JERUK | http://plp.asu.edu";
 char* copyright = "Copyright (c)2014 PLP Contributors";
 char* cmd_error = "ERROR: Invalid or malformed command";
 
-char* help = "General operations:\n"
-             "  help                 display this message\n"
-             "  memory               list memory operations\n"
-             "  u2                   list UART2 operations\n"
-             "  port                 expansion port pinout information\n"
-             "  reset                do a soft reset of the CPU\n"
-             "  plpemu <addr>        invoke the on-chip PLP CPU emulator\n"
-             "  envy                 invoke the flash loader\n"
-             "  rsw                  read switches\n"
-             "  wled <val>           write LED values\n"
-             "  rbtn                 read buttons 0 and 1\n";
+char* help = "General operations:\n\r"
+             "  help                 display this message\n\r"
+             "  memory               list memory operations\n\r"
+             "  u2                   list UART2 operations\n\r"
+             "  port                 expansion port pinout information\n\r"
+             "  reset                do a soft reset of the CPU\n\r"
+             "  plpemu <addr>        invoke the on-chip PLP CPU emulator\n\r"
+             "  envy                 invoke the flash loader\n\r"
+             "  rsw                  read switches\n\r"
+             "  wled <val>           write LED values\n\r"
+             "  rbtn                 read buttons 0 and 1\n\r";
 
 char* help_uart2 =
-             "Expansion Port UART2 operations:\n"
-             "  u2tx <val>           send a byte through UART2\n"
-             "  u2rx                 read a byte from UART2 (with timeout)\n"
-             "  u2bd <baud>          set baud (decimal, 000000-xxxxxx, with leading zeroes)\n"
-             "  u2pins               print UART2 pinout information\n"
-             "  uart                 go into UART forward mode. Reset CPU to exit\n";
+             "Expansion Port UART2 operations:\n\r"
+             "  u2tx <val>           send a byte through UART2\n\r"
+             "  u2rx                 read a byte from UART2 (with timeout)\n\r"
+             "  u2bd <baud>          set baud (decimal, 000000-xxxxxx, with leading zeroes)\n\r"
+             "  u2pins               print UART2 pinout information\n\r"
+             "  uart                 go into UART forward mode. Reset CPU to exit\n\r";
 
 char* help_memory =
-             "Memory operations:\n"
-             "  wload                invoke the RAM loader\n"
-             "  fload                invoke legacy RAM loader\n"
-             "  wbyte <addr> <val>   write a byte to the specified address\n"
-             "  rbyte <addr>         read a byte from the specified address\n"
-             "  range <start> <end>  print byte values from specified address range\n"
-             "  rword <start> <end>  likewise, in little-endian format\n"
-             "  row <addr>           print 16 bytes of value starting from specified address\n"
-             "  rowle <addr>         likewise, in little-endian format\n"
-             "  ascii <start> <end>  print memory contents as ASCII characters\n"
-             "  \nNotes:\n"
-             "  Addresses must be entered as lowercase hex, e.g. a0004020\n"
-             "  Byte values must be entered as a two-digit hex, e.g. a8\n"
-             "    or an 8-bit value, e.g. 00110101\n";
+             "Memory operations:\n\r"
+             "  wload                invoke the RAM loader\n\r"
+             "  fload                invoke legacy RAM loader\n\r"
+             "  wbyte <addr> <val>   write a byte to the specified address\n\r"
+             "  rbyte <addr>         read a byte from the specified address\n\r"
+             "  range <start> <end>  print byte values from specified address range\n\r"
+             "  rword <start> <end>  likewise, in little-endian format\n\r"
+             "  row <addr>           print 16 bytes of value starting from specified address\n\r"
+             "  rowle <addr>         likewise, in little-endian format\n\r"
+             "  ascii <start> <end>  print memory contents as ASCII characters\n\r"
+             "  \n\rNotes:\n\r"
+             "  Addresses must be entered as lowercase hex, e.g. a0004020\n\r"
+             "  Byte values must be entered as a two-digit hex, e.g. a8\n\r"
+             "    or an 8-bit value, e.g. 00110101\n\r";
 
-char* u2pinout = "UART 2 Pins Designation (VDD=3.3V)\n\n"
-                 "Header: P6\n"
-                 "-------------------\n"
-                 "1    2    3    4   \n"
-                 "VSS  U2TX VDD  U2RX\n";
+char* u2pinout = "UART 2 Pins Designation (VDD=3.3V)\n\r\n\r"
+                 "Header: P6\n\r"
+                 "-------------------\n\r"
+                 "1    2    3    4   \n\r"
+                 "VSS  U2TX VDD  U2RX\n\r";
 
-char* exppinout = "Expansion Port Pins Designation\n\n"
-                  "Header: P5\n"
-                  "-------------------------------------------------\n"
-                  "IO7  IO6  IO5  IO4  IO3  IO2  IO1  IO0  3    1   \n"
-                  "AN9  AN11 USB- USB+ SDA  SCL  INT0 RB4  3.3V VBUS\n"
-                  "-------------------------------------------------\n"
-                  "20   18   16   14   12   10   8    6    4    2\n"
-                  "5V   5V   VSS  VSS  VSS  VSS  VSS  U2TX 3.3V U2RX\n";
+char* exppinout = "Expansion Port Pins Designation\n\r\n\r"
+                  "Header: P5\n\r"
+                  "-------------------------------------------------\n\r"
+                  "IO7  IO6  IO5  IO4  IO3  IO2  IO1  IO0  3    1   \n\r"
+                  "AN9  AN11 USB- USB+ SDA  SCL  INT0 RB4  3.3V VBUS\n\r"
+                  "-------------------------------------------------\n\r"
+                  "20   18   16   14   12   10   8    6    4    2\n\r"
+                  "5V   5V   VSS  VSS  VSS  VSS  VSS  U2TX 3.3V U2RX\n\r";
 
 void jeruk_init(void);
 void delay_ms(unsigned int);
@@ -92,13 +93,13 @@ void main() {
     jeruk_init();
 
     // we default into interactive mode
-    pchar('\n');
+    pnewl();
     print(boot_info);
-    pchar('\n');
+    pnewl();
     print(copyright);
-    print("\nFirmware: ");
+    print("\n\rFirmware: ");
     print(version);
-    pchar('\n');
+    pnewl();
     ascii_hex_word(wordbuf, DEVID & 0x0fffffff);
     print("Microcontroller ID: ");
     psstr(wordbuf, 1, 7);
@@ -106,7 +107,7 @@ void main() {
     print_cpumodel();
     print(") Rev: ");
     pchar(ascii_byte_l((char)((DEVID & 0xf0000000) >> 28)));
-    print("\n> ");
+    print("\n\r> ");
     input_ptr = 0;
 
     while(1) {
@@ -176,7 +177,7 @@ void cmd_range() {
             pchar(' ');
             ptr_byte++;
         }
-        pchar('\n');
+        pnewl();
     }
 }
 
@@ -203,7 +204,7 @@ void cmd_rword() {
     char* ptr_byte = (char*) parse_ascii_hex_32(input_buf, 6);
     char* ptr_byte_end = (char*) parse_ascii_hex_32(input_buf, 15);
 
-    print("Words are displayed as little-endian\n");
+    print("Words are displayed as little-endian\n\r");
 
     while(ptr_byte < ptr_byte_end) {
         ascii_hex_word(wordbuf, (int) ptr_byte);
@@ -218,7 +219,7 @@ void cmd_rword() {
             }
             ptr_byte += 4;
         }
-        pchar('\n');
+        pnewl();
     }
 }
 
@@ -227,7 +228,7 @@ void cmd_rowle() {
     char wordbuf[9];
     char* ptr_byte = (char*) parse_ascii_hex_32(input_buf, 6);
 
-    print("Words are displayed as little-endian\n");
+    print("Words are displayed as little-endian\n\r");
 
     ascii_hex_word(wordbuf, (int) ptr_byte);
     print(wordbuf);
@@ -241,7 +242,7 @@ void cmd_rowle() {
         }
         ptr_byte += 4;
     }
-    pchar('\n');
+    pnewl();
 }
 
 void cmd_rsw() {
@@ -309,13 +310,13 @@ void cmd_ascii() {
             pchar(' ');
             ptr_byte++;
         }
-        pchar('\n');
+        pnewl();
     }
 }
 
 void process_input() {
 
-    print("\n");
+    print("\n\r");
 
          if(parse("help",   OPR_NONE))   print(help);
     else if(parse("memory", OPR_NONE))   print(help_memory);
@@ -351,19 +352,19 @@ void process_input() {
 
     else print(cmd_error);
 
-    print("\n> ");
+    print("\n\r> ");
 }
 
 // should be pretty close enough, 4 instructions / loop
 void delay_ms(unsigned int milliseconds) {
     unsigned int t = milliseconds * (SYSTEM_CLOCK / 1000 / 4);
-    __asm__("   move $t0, %0                 \n"
-            "wdelay_loop:                    \n"
-            "   beq $t0, $zero, wdelay_quit  \n"
-            "   addiu $t0, $t0, -1           \n"
-            "   j wdelay_loop                \n"
-            "   nop                          \n"
-            "wdelay_quit:                    \n"
+    __asm__("   move $t0, %0                 \n\r"
+            "wdelay_loop:                    \n\r"
+            "   beq $t0, $zero, wdelay_quit  \n\r"
+            "   addiu $t0, $t0, -1           \n\r"
+            "   j wdelay_loop                \n\r"
+            "   nop                          \n\r"
+            "wdelay_quit:                    \n\r"
             : : "r"(t) : "t0"
             );
 }

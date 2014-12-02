@@ -19,7 +19,7 @@ endif
 endif
 
 # Environment
-MKDIR=gnumkdir -p
+MKDIR=mkdir -p
 RM=rm -f 
 MV=mv 
 CP=cp 
@@ -45,17 +45,17 @@ OBJECTDIR=build/${CND_CONF}/${IMAGE_TYPE}
 DISTDIR=dist/${CND_CONF}/${IMAGE_TYPE}
 
 # Source Files Quoted if spaced
-SOURCEFILES_QUOTED_IF_SPACED=main.c wio.c wloader.c plpemu.c envy.c uart2.c spi.c
+SOURCEFILES_QUOTED_IF_SPACED=main.c wio.c wloader.c plpemu.c envy.c spi.c
 
 # Object Files Quoted if spaced
-OBJECTFILES_QUOTED_IF_SPACED=${OBJECTDIR}/main.o ${OBJECTDIR}/wio.o ${OBJECTDIR}/wloader.o ${OBJECTDIR}/plpemu.o ${OBJECTDIR}/envy.o ${OBJECTDIR}/uart2.o ${OBJECTDIR}/spi.o
-POSSIBLE_DEPFILES=${OBJECTDIR}/main.o.d ${OBJECTDIR}/wio.o.d ${OBJECTDIR}/wloader.o.d ${OBJECTDIR}/plpemu.o.d ${OBJECTDIR}/envy.o.d ${OBJECTDIR}/uart2.o.d ${OBJECTDIR}/spi.o.d
+OBJECTFILES_QUOTED_IF_SPACED=${OBJECTDIR}/main.o ${OBJECTDIR}/wio.o ${OBJECTDIR}/wloader.o ${OBJECTDIR}/plpemu.o ${OBJECTDIR}/envy.o ${OBJECTDIR}/spi.o
+POSSIBLE_DEPFILES=${OBJECTDIR}/main.o.d ${OBJECTDIR}/wio.o.d ${OBJECTDIR}/wloader.o.d ${OBJECTDIR}/plpemu.o.d ${OBJECTDIR}/envy.o.d ${OBJECTDIR}/spi.o.d
 
 # Object Files
-OBJECTFILES=${OBJECTDIR}/main.o ${OBJECTDIR}/wio.o ${OBJECTDIR}/wloader.o ${OBJECTDIR}/plpemu.o ${OBJECTDIR}/envy.o ${OBJECTDIR}/uart2.o ${OBJECTDIR}/spi.o
+OBJECTFILES=${OBJECTDIR}/main.o ${OBJECTDIR}/wio.o ${OBJECTDIR}/wloader.o ${OBJECTDIR}/plpemu.o ${OBJECTDIR}/envy.o ${OBJECTDIR}/spi.o
 
 # Source Files
-SOURCEFILES=main.c wio.c wloader.c plpemu.c envy.c uart2.c spi.c
+SOURCEFILES=main.c wio.c wloader.c plpemu.c envy.c spi.c
 
 
 CFLAGS=
@@ -124,12 +124,6 @@ ${OBJECTDIR}/envy.o: envy.c  nbproject/Makefile-${CND_CONF}.mk
 	@${RM} ${OBJECTDIR}/envy.o 
 	@${FIXDEPS} "${OBJECTDIR}/envy.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG -D__MPLAB_DEBUGGER_PK3=1 -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION) -I"C:/Program Files (x86)/Microchip/xc32/v1.33/pic32mx/include" -MMD -MF "${OBJECTDIR}/envy.o.d" -o ${OBJECTDIR}/envy.o envy.c   -save-temps=obj
 	
-${OBJECTDIR}/uart2.o: uart2.c  nbproject/Makefile-${CND_CONF}.mk
-	@${MKDIR} ${OBJECTDIR} 
-	@${RM} ${OBJECTDIR}/uart2.o.d 
-	@${RM} ${OBJECTDIR}/uart2.o 
-	@${FIXDEPS} "${OBJECTDIR}/uart2.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG -D__MPLAB_DEBUGGER_PK3=1 -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION) -I"C:/Program Files (x86)/Microchip/xc32/v1.33/pic32mx/include" -MMD -MF "${OBJECTDIR}/uart2.o.d" -o ${OBJECTDIR}/uart2.o uart2.c   -save-temps=obj
-	
 ${OBJECTDIR}/spi.o: spi.c  nbproject/Makefile-${CND_CONF}.mk
 	@${MKDIR} ${OBJECTDIR} 
 	@${RM} ${OBJECTDIR}/spi.o.d 
@@ -167,12 +161,6 @@ ${OBJECTDIR}/envy.o: envy.c  nbproject/Makefile-${CND_CONF}.mk
 	@${RM} ${OBJECTDIR}/envy.o 
 	@${FIXDEPS} "${OBJECTDIR}/envy.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION) -I"C:/Program Files (x86)/Microchip/xc32/v1.33/pic32mx/include" -MMD -MF "${OBJECTDIR}/envy.o.d" -o ${OBJECTDIR}/envy.o envy.c   -save-temps=obj
 	
-${OBJECTDIR}/uart2.o: uart2.c  nbproject/Makefile-${CND_CONF}.mk
-	@${MKDIR} ${OBJECTDIR} 
-	@${RM} ${OBJECTDIR}/uart2.o.d 
-	@${RM} ${OBJECTDIR}/uart2.o 
-	@${FIXDEPS} "${OBJECTDIR}/uart2.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION) -I"C:/Program Files (x86)/Microchip/xc32/v1.33/pic32mx/include" -MMD -MF "${OBJECTDIR}/uart2.o.d" -o ${OBJECTDIR}/uart2.o uart2.c   -save-temps=obj
-	
 ${OBJECTDIR}/spi.o: spi.c  nbproject/Makefile-${CND_CONF}.mk
 	@${MKDIR} ${OBJECTDIR} 
 	@${RM} ${OBJECTDIR}/spi.o.d 
@@ -198,7 +186,7 @@ else
 dist/${CND_CONF}/${IMAGE_TYPE}/testfw.X.${IMAGE_TYPE}.${OUTPUT_SUFFIX}: ${OBJECTFILES}  nbproject/Makefile-${CND_CONF}.mk   jeruk-256KB.ld
 	@${MKDIR} dist/${CND_CONF}/${IMAGE_TYPE} 
 	${MP_CC} $(MP_EXTRA_LD_PRE)  -mprocessor=$(MP_PROCESSOR_OPTION)  -o dist/${CND_CONF}/${IMAGE_TYPE}/testfw.X.${IMAGE_TYPE}.${DEBUGGABLE_SUFFIX} ${OBJECTFILES_QUOTED_IF_SPACED}         -save-temps=obj -Wl,--defsym=__MPLAB_BUILD=1$(MP_EXTRA_LD_POST)$(MP_LINKER_FILE_OPTION),-Map="${DISTDIR}/${PROJECTNAME}.${IMAGE_TYPE}.map"
-	${MP_CC_DIR}\\xc32-bin2hex dist/${CND_CONF}/${IMAGE_TYPE}/testfw.X.${IMAGE_TYPE}.${DEBUGGABLE_SUFFIX} 
+	${MP_CC_DIR}/xc32-bin2hex dist/${CND_CONF}/${IMAGE_TYPE}/testfw.X.${IMAGE_TYPE}.${DEBUGGABLE_SUFFIX} 
 endif
 
 
@@ -217,7 +205,7 @@ endif
 # Enable dependency checking
 .dep.inc: .depcheck-impl
 
-DEPFILES=$(shell mplabwildcard ${POSSIBLE_DEPFILES})
+DEPFILES=$(shell "${PATH_TO_IDE_BIN}"mplabwildcard ${POSSIBLE_DEPFILES})
 ifneq (${DEPFILES},)
 include ${DEPFILES}
 endif

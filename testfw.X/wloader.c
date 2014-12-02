@@ -99,14 +99,14 @@ void wload() {
                 break;
             case 'q': //quit bootloader and hand off control to caller
                 stop = 1;
-                print("\nwload exit");
+                print("\n\rwload exit");
                 break;
             case 0x20:
             case 0x0a:
             case 0x0d:
                 break;
             default:
-                print("\nwload error: unknown directive: ");
+                print("\n\rwload error: unknown directive: ");
                 pchar(buf);
                 stop = 1;
         }

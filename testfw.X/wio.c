@@ -69,6 +69,11 @@ void pchar(char a) {
     U1TXREG = a;
 }
 
+void pnewl() {
+    pchar(0xa);
+    pchar(0xd);
+}
+
 char blocking_read() {
     if(U1STAbits.OERR) {
         U1STAbits.OERR = 0;
@@ -232,11 +237,11 @@ void u2_set_baud(int val_int) {
     print("New baud: ");
     ascii_hex_word(wordbuf, val_int);
     print(wordbuf);
-    pchar('\n');
+    pnewl();
     print("brg value: ");
     ascii_hex_word(wordbuf, U2BRG);
     print(wordbuf);
-    pchar('\n');
+    pnewl();
 }
 
 char u2_blocking_read() {
@@ -261,7 +266,8 @@ void u2_read_print() {
         pchar(ascii_byte_h(val));
         pchar(ascii_byte_l(val));
     } else {
-        print("UART receive timeout\n");
+        print("UART receive timeout");
+        pnewl();
     }
 }
 

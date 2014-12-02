@@ -30,7 +30,7 @@ void spi() {
     while(!stop) {
         print("spi> ");
         input_ptr = readline(input_buf, 80);
-        pchar('\n');
+        pnewl();
 
              if(parse("quit", OPR_NONE))    { stop = 1;                        }
         else if(parse("tx", OPR_HEX32))     { spi_tx();                        }
@@ -38,6 +38,6 @@ void spi() {
             print("Invalid command.");
         }
 
-        pchar('\n');
+        pnewl();
     }
 }
