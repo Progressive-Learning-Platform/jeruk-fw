@@ -1,5 +1,5 @@
 /*
-    Copyright 2014 David Fritz, Brian Gordon, Wira Mulia
+    Copyright 2014-2015 David Fritz, Brian Gordon, Wira Mulia
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -22,8 +22,10 @@
 #include "wloader.h"
 #include "plpemu.h"
 #include "proccfg.h"
+#include "procdefs.h"
 #include "envy.h"
 #include "spi.h"
+#include "misc.h"
 
 char* version = "jeruk-pic32-wload-alpha-1";
 char* boot_info = "JERUK | http://plp.asu.edu";
@@ -111,7 +113,7 @@ void main() {
     input_ptr = 0;
 
     while(1) {
-        input_ptr = readline(input_buf, 80);
+        wio_readline();
         process_input();
     }
 }
@@ -333,6 +335,7 @@ void process_input() {
     else if(parse("envycl", OPR_NONE))   envy_clear();
     else if(parse("spi",    OPR_NONE))   spi();
     else if(parse("party",  OPR_NONE))   party();
+    else if(parse("btuart", OPR_NONE))   button_uart('a', 'b');
 
     else if(parse("u2",     OPR_NONE))   print(help_uart2);
     else if(parse("u2pins", OPR_NONE))   print(u2pinout);
@@ -355,20 +358,6 @@ void process_input() {
     print("\n\r> ");
 }
 
-// should be pretty close enough, 4 instructions / loop
-void delay_ms(unsigned int milliseconds) {
-    unsigned int t = milliseconds * (SYSTEM_CLOCK / 1000 / 4);
-    __asm__("   move $t0, %0                 \n\r"
-            "wdelay_loop:                    \n\r"
-            "   beq $t0, $zero, wdelay_quit  \n\r"
-            "   addiu $t0, $t0, -1           \n\r"
-            "   j wdelay_loop                \n\r"
-            "   nop                          \n\r"
-            "wdelay_quit:                    \n\r"
-            : : "r"(t) : "t0"
-            );
-}
-
 // print the (supported) CPU model the firmware is running on
 void print_cpumodel() {
     int val = DEVID & 0x0fffffff;
@@ -376,39 +365,5 @@ void print_cpumodel() {
     else if(val == 0x4D00053)    print("PIC32MX250F128B");
     else if(val == 0x4D01053)    print("PIC32MX230F064B");
     else                         print("Unknown");    
-}
-
-void party() {
-    char stop = 0;
-    while(!stop) {
-        if(U1STAbits.URXDA) {
-            if(U1RXREG == 'q') {
-                stop = 1;
-            }
-        }
-        LEDS = 0b00100;
-        delay_ms(50);
-        LEDS = 0b01110;
-        delay_ms(50);
-        LEDS = 0b11111;
-        delay_ms(50);
-        LEDS = 0b11011;
-        delay_ms(50);
-        LEDS = 0b10001;
-        delay_ms(50);
-        LEDS = 0;
-        delay_ms(50);
-        LEDS = 0b10001;
-        delay_ms(50);
-        LEDS = 0b11011;
-        delay_ms(50);
-        LEDS = 0b11111;
-        delay_ms(50);
-        LEDS = 0b01110;
-        delay_ms(50);
-        LEDS = 0b00100;
-        delay_ms(50);
-        LEDS = 0;
-    }
 }
 

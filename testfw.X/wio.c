@@ -82,6 +82,16 @@ char blocking_read() {
     return U1RXREG;
 }
 
+int read() {
+    if(U1STAbits.OERR) {
+        U1STAbits.OERR = 0;
+    }
+    if(U1STAbits.URXDA)
+        return U1RXREG;
+    else
+        return -1;
+}
+
 int readline(char* input_buf, int size) {
     int ptr = 0;
     char buf;
@@ -95,6 +105,10 @@ int readline(char* input_buf, int size) {
             ptr++;
         }
     }
+}
+
+void wio_readline() {
+    input_ptr = readline(input_buf, 80);
 }
 
 char str_cmp(char* str1, char* str2, int len) {
