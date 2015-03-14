@@ -1,4 +1,4 @@
-<a href="http://wmulia.org/plp/jeruk/jeruk-photo-1.jpg"><img src="http://wmulia.org/plp/jeruk/jeruk-photo-1.jpg" width="600px" /></a>
+<a href="http://wmulia.org/plp/jeruk/jeruk-photo-1.jpg"><img src="http://wmulia.org/plp/jeruk/jeruk-photo-1.jpg" width="400px" /></a>
 
 This project is a development site for the Jeruk development board firmware. This project is part of the Progressive Learning Platform (http://plp.asu.edu).
 
