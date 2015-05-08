@@ -25,7 +25,7 @@ extern "C" {
 #define BTN1 PORTBbits.RB1
 
 #define SYSTEM_CLOCK    48000000
-#define UART1_BAUD      57600
+#define UART1_BAUD      115200
 #define UART2_BAUD      9600
 
 #define LEDS PORTA

@@ -1,5 +1,5 @@
 /*
-    Copyright 2014 David Fritz, Brian Gordon, Wira Mulia
+    Copyright 2014-2015 David Fritz, Brian Gordon, Wira Mulia
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -99,6 +99,14 @@ int readline(char* input_buf, int size) {
         buf = blocking_read();
         if(ptr == size || buf == 0x0d) {
             return ptr;
+        } else if(buf == 0x08) {
+            if(ptr == 0) {
+                continue;
+            }
+            pchar(0x08);
+            pchar(' ');
+            pchar(0x08);
+            ptr--;
         } else {
             pchar(buf);
             input_buf[ptr] = buf;
