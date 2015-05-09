@@ -22,6 +22,7 @@
 #include <xc.h>
 #include <proc/p32mx270f256b.h>
 #include "wio.h"
+#include "vt.h"
 
 #define UART_TIMEOUT    7200000L
 
@@ -34,6 +35,11 @@ void init_uart1(int pbclock, int baud) {
     U1STAbits.URXEN = 1;        // receive enable
     U1STAbits.UTXEN = 1;        // transmit enable
     U1BRG = (pbclock/baud)/4 - 1;
+
+    // default terminal options
+    WIO_EMULATE_VT = 0;
+    WIO_BACKSPACE_SUPPORT = 0;
+    VT_HISTORY_SET = 0;
 }
 
 void init_uart2(int pbclock, int baud) {
@@ -74,6 +80,13 @@ void pnewl() {
     pchar(0xd);
 }
 
+void print_buf(wio_line_buf *buf) {
+    int i;
+    for(i = 0; i < buf->size; i++) {
+        pchar(buf->data[i]);
+    }
+}
+
 char blocking_read() {
     if(U1STAbits.OERR) {
         U1STAbits.OERR = 0;
@@ -92,31 +105,40 @@ int read() {
         return -1;
 }
 
-int readline(char* input_buf, int size) {
-    int ptr = 0;
+int readline(char *line_buf, int size) {
     char buf;
+    int nread = 0;
+
     while(1) {
         buf = blocking_read();
-        if(ptr == size || buf == 0x0d) {
-            return ptr;
-        } else if(buf == 0x08) {
-            if(ptr == 0) {
+        if(nread == size || buf == CHAR_CR) {
+            return nread;
+        } else if(WIO_BACKSPACE_SUPPORT && buf == CHAR_BSPACE) {
+            if(nread == 0) {
                 continue;
             }
-            pchar(0x08);
+            pchar(CHAR_BSPACE);
             pchar(' ');
-            pchar(0x08);
-            ptr--;
+            pchar(CHAR_BSPACE);
+            nread--;
+        } else if(WIO_EMULATE_VT && buf == CHAR_ESC) {
+            // handle vt escape sequences
+            vt_buf = &wio_line;
+            vt_escape(&nread);
         } else {
             pchar(buf);
-            input_buf[ptr] = buf;
-            ptr++;
+            line_buf[nread++] = buf;
         }
     }
 }
 
 void wio_readline() {
-    input_ptr = readline(input_buf, 80);
+    wio_line.size = readline((char*)&wio_line.data, 80);
+    if(WIO_EMULATE_VT) {
+        buf_cpy(&wio_line, &vt_last_line);
+        VT_HISTORY_SET = 1;
+        VT_LOOKUP_SET = 0;
+    }
 }
 
 char str_cmp(char* str1, char* str2, int len) {
@@ -127,6 +149,14 @@ char str_cmp(char* str1, char* str2, int len) {
         }
     }
     return 1;
+}
+
+void buf_cpy(wio_line_buf *src, wio_line_buf *dst) {
+    int i;
+    for(i = 0; i < src->size; i++) {
+        dst->data[i] = src->data[i];
+    }
+    dst->size = src->size;
 }
 
 char parse_ascii_hex(char ascii) {
@@ -300,6 +330,7 @@ void u2_write(char a) {
 
 char parse(char* cmd, char opr_type) {
     int i  = 0;
+    char input_ptr = wio_line.size;
     char buf;
     int cmd_len = 0;
     while(cmd[cmd_len] != 0) {
@@ -307,7 +338,7 @@ char parse(char* cmd, char opr_type) {
     }
 
     while((buf = cmd[i]) != 0 && i < input_ptr) {
-        if(input_buf[i] != buf) {
+        if(wio_line.data[i] != buf) {
             return 0;
         }
         i++;
@@ -342,92 +373,115 @@ char parse(char* cmd, char opr_type) {
     }
 
     if(opr_type == OPR_HEX32 || opr_type == OPR_HEX8) {
-        if(input_buf[i] != ' ') {
+        if(wio_line.data[i] != ' ') {
             return 0;
         }
         for(i=i+1; i < input_ptr; i++) {
-            if(!((input_buf[i] >= '0' && input_buf[i] <= '9') ||
-               (input_buf[i] >= 'a' && input_buf[i] <= 'f'))) {
+            if(!((wio_line.data[i] >= '0' && wio_line.data[i] <= '9') ||
+               (wio_line.data[i] >= 'a' && wio_line.data[i] <= 'f'))) {
                 return 0;
             }
+        }
+
+        if(opr_type == OPR_HEX32) {
+            wio_opr_int1 = parse_ascii_hex_32(wio_line.data, cmd_len+1);
+        } else {
+            wio_opr_char = parse_ascii_hex_byte(wio_line.data, cmd_len+1);
         }
     }
 
     else if(opr_type == OPR_RANGE) {
-        if(input_buf[i] != ' ' || input_buf[input_ptr-9] != ' ') {
+        if(wio_line.data[i] != ' ' || wio_line.data[input_ptr-9] != ' ') {
             return 0;
         }
         for(i=i+1; i < input_ptr-9; i++) {
-            if(!((input_buf[i] >= '0' && input_buf[i] <= '9') ||
-               (input_buf[i] >= 'a' && input_buf[i] <= 'f'))) {
+            if(!((wio_line.data[i] >= '0' && wio_line.data[i] <= '9') ||
+               (wio_line.data[i] >= 'a' && wio_line.data[i] <= 'f'))) {
                 return 0;
             }
         }
 
         for(i=input_ptr-8; i < input_ptr; i++) {
-            if(!((input_buf[i] >= '0' && input_buf[i] <= '9') ||
-               (input_buf[i] >= 'a' && input_buf[i] <= 'f'))) {
+            if(!((wio_line.data[i] >= '0' && wio_line.data[i] <= '9') ||
+               (wio_line.data[i] >= 'a' && wio_line.data[i] <= 'f'))) {
                 return 0;
             }
         }
+
+        wio_opr_int1 = parse_ascii_hex_32(wio_line.data, cmd_len+1);
+        wio_opr_int2 = parse_ascii_hex_32(wio_line.data, cmd_len+1+9);
     }
 
     else if(opr_type == OPR_ADVAL) {
-        if(input_buf[i] != ' ' || input_buf[input_ptr-3] != ' ') {
+        if(wio_line.data[i] != ' ' || wio_line.data[input_ptr-3] != ' ') {
             return 0;
         }
         for(i=i+1; i < input_ptr-3; i++) {
-            if(!((input_buf[i] >= '0' && input_buf[i] <= '9') ||
-               (input_buf[i] >= 'a' && input_buf[i] <= 'f'))) {
+            if(!((wio_line.data[i] >= '0' && wio_line.data[i] <= '9') ||
+               (wio_line.data[i] >= 'a' && wio_line.data[i] <= 'f'))) {
                 return 0;
             }
         }
 
         for(i=input_ptr-2; i < input_ptr; i++) {
-            if(!((input_buf[i] >= '0' && input_buf[i] <= '9') ||
-               (input_buf[i] >= 'a' && input_buf[i] <= 'f'))) {
+            if(!((wio_line.data[i] >= '0' && wio_line.data[i] <= '9') ||
+               (wio_line.data[i] >= 'a' && wio_line.data[i] <= 'f'))) {
                 return 0;
             }
         }
+
+        wio_opr_int1 = parse_ascii_hex_32(wio_line.data, cmd_len+1);
+        wio_opr_char = parse_ascii_hex_byte(wio_line.data, cmd_len+1+9);
     }
 
     else if(opr_type == OPR_ADBIT) {
-        if(input_buf[i] != ' ' || input_buf[input_ptr-9] != ' ') {
+        if(wio_line.data[i] != ' ' || wio_line.data[input_ptr-9] != ' ') {
             return 0;
         }
         for(i=i+1; i < input_ptr-9; i++) {
-            if(!((input_buf[i] >= '0' && input_buf[i] <= '9') ||
-               (input_buf[i] >= 'a' && input_buf[i] <= 'f'))) {
+            if(!((wio_line.data[i] >= '0' && wio_line.data[i] <= '9') ||
+               (wio_line.data[i] >= 'a' && wio_line.data[i] <= 'f'))) {
                 return 0;
             }
         }
 
         for(i=input_ptr-8; i < input_ptr; i++) {
-            if(input_buf[i] != '0' && input_buf[i] != '1') {
+            if(wio_line.data[i] != '0' && wio_line.data[i] != '1') {
                 return 0;
             }
         }
+
+        wio_opr_int1 = parse_ascii_hex_32(wio_line.data, cmd_len+1);
+        wio_opr_char = parse_ascii_bin_8(wio_line.data, cmd_len+1+9);
     }
 
     else if(opr_type == OPR_DEC6) {
-        if(input_buf[i] != ' ') {
+        if(wio_line.data[i] != ' ') {
             return 0;
         }
         for(i=i+1; i < input_ptr; i++) {
-            if(!(input_buf[i] >= '0' && input_buf[i] <= '9')) {
+            if(!(wio_line.data[i] >= '0' && wio_line.data[i] <= '9')) {
                 return 0;
             }
         }
+
+        wio_opr_int1 = parse_ascii_decimal(wio_line.data, cmd_len+1, 6);
     }
 
     else if(opr_type == OPR_BIN || opr_type == OPR_BIN8) {
-        if(input_buf[i] != ' ') {
+        if(wio_line.data[i] != ' ') {
             return 0;
         }
         for(i=i+1; i < input_ptr; i++) {
-            if(input_buf[i] != '0' && input_buf[i] != '1') {
+            if(wio_line.data[i] != '0' && wio_line.data[i] != '1') {
                 return 0;
             }
+        }
+
+        if(opr_type == OPR_BIN) {
+            wio_opr_char = parse_ascii_bin(wio_line.data, cmd_len+1);
+        } else {
+            wio_opr_char = parse_ascii_bin_8(wio_line.data, cmd_len+1);
         }
     }
 

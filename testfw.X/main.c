@@ -27,10 +27,9 @@
 #include "spi.h"
 #include "misc.h"
 
-char* version = "jeruk-pic32-wload-alpha-1";
+char* version = "jeruk-pic32-wload-alpha-2";
 char* boot_info = "JERUK | http://plp.asu.edu";
-char* copyright = "Copyright (c)2014 PLP Contributors";
-char* cmd_error = "ERROR: Invalid or malformed command";
+char* copyright = "Copyright (c)2014-2015 PLP Contributors";
 
 char* help = "General operations:\n\r"
              "  help                 display this message\n\r"
@@ -83,6 +82,8 @@ char* exppinout = "Expansion Port Pins Designation\n\r\n\r"
                   "20   18   16   14   12   10   8    6    4    2\n\r"
                   "5V   5V   VSS  VSS  VSS  VSS  VSS  U2TX 3.3V U2RX\n\r";
 
+char* cmd_error = "ERROR: Invalid or malformed command";
+
 void jeruk_init(void);
 void delay_ms(unsigned int);
 void print_cpumodel(void);
@@ -110,7 +111,6 @@ void main() {
     print(") Rev: ");
     pchar(ascii_byte_l((char)((DEVID & 0xf0000000) >> 28)));
     print("\n\r> ");
-    input_ptr = 0;
 
     while(1) {
         wio_readline();
@@ -129,6 +129,10 @@ void jeruk_init() {
     // Setup UARTs
     init_uart1(SYSTEM_CLOCK, UART1_BAUD);
     init_uart2(SYSTEM_CLOCK, UART2_BAUD);
+    
+    // Set terminal options
+    WIO_EMULATE_VT = 1;
+    WIO_BACKSPACE_SUPPORT = 1;
 
     TRISB &= 0b1011111111110111; // pins RB3 and RB14 outputs for UART TX lines
     TRISA &= 0b1111111111100000; // LED pins
@@ -163,8 +167,8 @@ void jeruk_init() {
 void cmd_range() {
     char wordbuf[9];
     int i;
-    char* ptr_byte = (char*) parse_ascii_hex_32(input_buf, 6);
-    char* ptr_byte_end = (char*) parse_ascii_hex_32(input_buf, 15);
+    char* ptr_byte = (char*) wio_opr_int1;
+    char* ptr_byte_end = (char*) wio_opr_int2;
 
     while(ptr_byte < ptr_byte_end) {
         ascii_hex_word(wordbuf, (int) ptr_byte);
@@ -185,8 +189,8 @@ void cmd_range() {
 
 void cmd_row() {
     int i;
-    char* ptr_byte = (char*) parse_ascii_hex_32(input_buf, 4);
-    psstr(input_buf, 4, 8);
+    char* ptr_byte = (char*) wio_opr_int1;
+    psstr(wio_line.data, 4, 8);
     pchar(' ');
     
     for(i = 0; i < 16; i++) {
@@ -203,8 +207,8 @@ void cmd_row() {
 void cmd_rword() {
     int i, j;
     char wordbuf[9];
-    char* ptr_byte = (char*) parse_ascii_hex_32(input_buf, 6);
-    char* ptr_byte_end = (char*) parse_ascii_hex_32(input_buf, 15);
+    char* ptr_byte = (char*) wio_opr_int1;
+    char* ptr_byte_end = (char*) wio_opr_int2;
 
     print("Words are displayed as little-endian\n\r");
 
@@ -228,7 +232,7 @@ void cmd_rword() {
 void cmd_rowle() {
     int i, j;
     char wordbuf[9];
-    char* ptr_byte = (char*) parse_ascii_hex_32(input_buf, 6);
+    char* ptr_byte = (char*) wio_opr_int1;
 
     print("Words are displayed as little-endian\n\r");
 
@@ -262,39 +266,29 @@ void cmd_rbtn() {
     pchar(ascii_byte_l(val));
 }
 
-void cmd_wled(char hex) {
-    char val;
-    if(hex) {
-        val = parse_ascii_hex_byte(input_buf, 5);
-    } else {
-        val = parse_ascii_bin_8(input_buf, 5);
-    }
+void cmd_wled() {
+    char val = wio_opr_char;
     LEDS = val;
 }
 
 void cmd_rbyte() {
-    char* ptr_byte = (char*) parse_ascii_hex_32(input_buf, 6);
+    char* ptr_byte = (char*) wio_opr_int1;
     print("Value: ");
     pchar(ascii_byte_h(*ptr_byte));
     pchar(ascii_byte_l(*ptr_byte));
 }
 
-void cmd_wbyte(char hex) {
-    char val;
-    char* ptr_byte = (char*) parse_ascii_hex_32(input_buf, 6);
-    if(hex) {
-        val = parse_ascii_hex_byte(input_buf, 15);
-    } else {
-        val = parse_ascii_bin_8(input_buf, 15);
-    }
+void cmd_wbyte() {
+    char val = wio_opr_char;
+    char* ptr_byte = (char*) wio_opr_int1;
     *ptr_byte = val;
 }
 
 void cmd_ascii() {
     int i;
     char wordbuf[9];
-    char* ptr_byte = (char*) parse_ascii_hex_32(input_buf, 6);
-    char* ptr_byte_end = (char*) parse_ascii_hex_32(input_buf, 15);
+    char* ptr_byte = (char*) wio_opr_int1;
+    char* ptr_byte_end = (char*) wio_opr_int2;
 
     while(ptr_byte < ptr_byte_end) {
         ascii_hex_word(wordbuf, (int) ptr_byte);
@@ -324,11 +318,11 @@ void process_input() {
     else if(parse("memory", OPR_NONE))   print(help_memory);
     else if(parse("port",   OPR_NONE))   print(exppinout);
     else if(parse("reset",  OPR_NONE))   SoftReset();
-    else if(parse("plpemu", OPR_HEX32))  emu_plp5(parse_ascii_hex_32(input_buf, 7));
+    else if(parse("plpemu", OPR_HEX32))  emu_plp5(wio_opr_int1);
     else if(parse("rsw",    OPR_NONE))   cmd_rsw();
     else if(parse("rbtn",   OPR_NONE))   cmd_rbtn();
-    else if(parse("wled",   OPR_HEX8))   cmd_wled(1);
-    else if(parse("wled",   OPR_BIN8))   cmd_wled(0);
+    else if(parse("wled",   OPR_HEX8))   cmd_wled();
+    else if(parse("wled",   OPR_BIN8))   cmd_wled();
     else if(parse("wload",  OPR_NONE))   wload();
     else if(parse("fload",  OPR_NONE))   fload();
     else if(parse("envy",   OPR_NONE))   envy();
@@ -340,12 +334,12 @@ void process_input() {
     else if(parse("u2",     OPR_NONE))   print(help_uart2);
     else if(parse("u2pins", OPR_NONE))   print(u2pinout);
     else if(parse("u2rx",   OPR_NONE))   u2_read_print();
-    else if(parse("u2tx",   OPR_HEX8))   u2_write(parse_ascii_hex_byte(input_buf, 5));
-    else if(parse("u2bd",   OPR_DEC6))   u2_set_baud(parse_ascii_decimal(input_buf, 5, 6));
+    else if(parse("u2tx",   OPR_HEX8))   u2_write(wio_opr_char);
+    else if(parse("u2bd",   OPR_DEC6))   u2_set_baud(wio_opr_int1);
     else if(parse("uart",   OPR_NONE))   uart_forward();
 
-    else if(parse("wbyte",  OPR_ADVAL))  cmd_wbyte(1);
-    else if(parse("wbyte",  OPR_ADBIT))  cmd_wbyte(0);
+    else if(parse("wbyte",  OPR_ADVAL))  cmd_wbyte();
+    else if(parse("wbyte",  OPR_ADBIT))  cmd_wbyte();
     else if(parse("rbyte",  OPR_HEX32))  cmd_rbyte();
     else if(parse("range",  OPR_RANGE))  cmd_range();
     else if(parse("rword",  OPR_RANGE))  cmd_rword();

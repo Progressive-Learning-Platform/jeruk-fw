@@ -12,6 +12,7 @@
       <itemPath>spi.h</itemPath>
       <itemPath>misc.h</itemPath>
       <itemPath>procdefs.h</itemPath>
+      <itemPath>vt.h</itemPath>
     </logicalFolder>
     <logicalFolder name="LinkerScript"
                    displayName="Linker Files"
@@ -28,6 +29,7 @@
       <itemPath>envy.c</itemPath>
       <itemPath>spi.c</itemPath>
       <itemPath>misc.c</itemPath>
+      <itemPath>vt.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"

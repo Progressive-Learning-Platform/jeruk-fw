@@ -1,5 +1,5 @@
 /*
-    Copyright 2014 David Fritz, Brian Gordon, Wira Mulia
+    Copyright 2014-2015 David Fritz, Brian Gordon, Wira Mulia
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -40,12 +40,31 @@ extern "C" {
 #define OPR_BIN8  7
 #define OPR_ADBIT 8
 
-char input_buf[80];
-char input_ptr;
+// control characters
+#define CHAR_BSPACE 0x08
+#define CHAR_LF     0x0A
+#define CHAR_CR     0x0D
+#define CHAR_ESC    0x1B
+
+typedef struct {
+    char size;
+    char data[80];
+} wio_line_buf;
+
+wio_line_buf wio_line;
+
+char WIO_EMULATE_VT;
+char WIO_BACKSPACE_SUPPORT;
+
+int wio_opr_int1;
+int wio_opr_int2;
+char wio_opr_char;
 
 void init_uart1(int, int);
 void init_uart2(int, int);
+void init_vt();
 void print(char*);
+void print_buf(wio_line_buf*);
 void psstr(char*, int, int);
 void pchar(char);
 void pnewl(void);
@@ -54,6 +73,7 @@ int read(void);
 int readline(char*, int);
 void wio_readline(void);
 char str_cmp(char*, char*, int);
+void buf_cpy(wio_line_buf*, wio_line_buf*);
 char parse_ascii_hex_byte(char*, int);
 int parse_ascii_hex_32(char*, int);
 char parse_ascii_bin(char*, int);
@@ -76,4 +96,5 @@ char parse(char*, char);
 #endif
 
 #endif	/* WTERMIO_H */
+
 

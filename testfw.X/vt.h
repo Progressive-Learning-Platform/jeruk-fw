@@ -1,5 +1,5 @@
 /*
-    Copyright 2014 David Fritz, Brian Gordon, Wira Mulia
+    Copyright 2015 David Fritz, Brian Gordon, Wira Mulia
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -16,28 +16,33 @@
 
  */
 
-#include "wio.h"
+/* 
+ * File:   vt.h
+ * Author: wira
+ *
+ * Created on May 8, 2015, 4:15 PM
+ */
 
-void spi_tx() {
+#ifndef VT_H
+#define	VT_H
 
+#ifdef	__cplusplus
+extern "C" {
+#endif
+
+char VT_HISTORY_SET;
+char VT_LOOKUP_SET;
+
+wio_line_buf vt_last_line;
+wio_line_buf vt_temp_line;
+wio_line_buf *vt_buf;
+
+void vt_delete(int);
+void vt_escape(int*);
+
+#ifdef	__cplusplus
 }
+#endif
 
-void spi() {
-    unsigned int operand;
-    char stop = 0;
-    char wordbuf[9];
+#endif	/* VT_H */
 
-    while(!stop) {
-        print("spi> ");
-        wio_line.size = readline((char*)&wio_line.data, 80);
-        pnewl();
-
-             if(parse("quit", OPR_NONE))    { stop = 1;                        }
-        else if(parse("tx", OPR_HEX32))     { spi_tx();                        }
-        else {
-            print("Invalid command.");
-        }
-
-        pnewl();
-    }
-}
